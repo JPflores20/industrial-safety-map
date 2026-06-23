@@ -7,29 +7,56 @@ interface Props {
   onSelect: (id: string) => void;
 }
 
+type Accent = "warning" | "alert" | "danger";
+
+const accentStyles: Record<
+  Accent,
+  {
+    icon: string;
+    badge: string;
+    selected: string;
+    ring: string;
+  }
+> = {
+  warning: {
+    icon: "text-safety-warning",
+    badge:
+      "border-safety-warning/60 bg-safety-warning/10 text-safety-warning",
+    selected:
+      "border-safety-warning shadow-[0_0_24px_-4px_var(--color-safety-warning)]",
+    ring: "focus-visible:ring-safety-warning",
+  },
+  alert: {
+    icon: "text-safety-alert",
+    badge: "border-safety-alert/60 bg-safety-alert/10 text-safety-alert",
+    selected:
+      "border-safety-alert shadow-[0_0_24px_-4px_var(--color-safety-alert)]",
+    ring: "focus-visible:ring-safety-alert",
+  },
+  danger: {
+    icon: "text-safety-danger",
+    badge: "border-safety-danger/60 bg-safety-danger/10 text-safety-danger",
+    selected:
+      "border-safety-danger shadow-[0_0_24px_-4px_var(--color-safety-danger)]",
+    ring: "focus-visible:ring-safety-danger",
+  },
+};
+
 const zoneMeta: Record<
   string,
-  { icon: typeof Zap; gridArea: string; accent: string }
+  { icon: typeof Zap; gridArea: string; accent: Accent }
 > = {
-  subestacion: {
-    icon: Zap,
-    gridArea: "1 / 1 / 2 / 2",
-    accent: "safety-danger",
-  },
-  mezanine: {
-    icon: Layers,
-    gridArea: "1 / 2 / 2 / 3",
-    accent: "safety-alert",
-  },
+  subestacion: { icon: Zap, gridArea: "1 / 1 / 2 / 2", accent: "danger" },
+  mezanine: { icon: Layers, gridArea: "1 / 2 / 2 / 3", accent: "alert" },
   "cto-bombas": {
     icon: Droplet,
     gridArea: "2 / 1 / 3 / 2",
-    accent: "safety-warning",
+    accent: "warning",
   },
   "planta-baja": {
     icon: Factory,
     gridArea: "2 / 2 / 3 / 3",
-    accent: "safety-alert",
+    accent: "alert",
   },
 };
 
@@ -62,7 +89,8 @@ export function PlantMap({ areas, selectedId, onSelect }: Props) {
           const meta = zoneMeta[area.id];
           const Icon = meta?.icon ?? Factory;
           const isSelected = selectedId === area.id;
-          const accent = meta?.accent ?? "safety-warning";
+          const accent: Accent = meta?.accent ?? "warning";
+          const styles = accentStyles[accent];
           return (
             <button
               key={area.id}
@@ -70,20 +98,20 @@ export function PlantMap({ areas, selectedId, onSelect }: Props) {
               aria-pressed={isSelected}
               onClick={() => onSelect(area.id)}
               style={{ gridArea: meta?.gridArea }}
-              className={`group relative flex flex-col justify-between rounded-xl border-2 bg-surface-zone p-4 text-left transition-all duration-200 hover:scale-[1.02] hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-${accent} ${
+              className={`group relative flex flex-col justify-between rounded-xl border-2 bg-surface-zone p-4 text-left transition-all duration-200 hover:scale-[1.02] hover:shadow-lg focus:outline-none focus-visible:ring-2 ${styles.ring} ${
                 isSelected
-                  ? `border-${accent} shadow-[0_0_24px_-4px_var(--color-${accent})]`
+                  ? styles.selected
                   : "border-border hover:border-foreground/40"
               }`}
             >
               <div className="flex items-start justify-between gap-2">
                 <div
-                  className={`flex h-10 w-10 items-center justify-center rounded-lg bg-background/40 text-${accent}`}
+                  className={`flex h-10 w-10 items-center justify-center rounded-lg bg-background/40 ${styles.icon}`}
                 >
                   <Icon className="h-5 w-5" />
                 </div>
                 <span
-                  className={`rounded-full border border-${accent}/60 bg-${accent}/10 px-2 py-0.5 text-xs font-medium text-${accent}`}
+                  className={`rounded-full border px-2 py-0.5 text-xs font-medium ${styles.badge}`}
                 >
                   {area.riesgos.length} riesgos
                 </span>
