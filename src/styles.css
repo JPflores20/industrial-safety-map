@@ -132,6 +132,30 @@
   --sidebar-ring: oklch(0.551 0.027 264.364);
 }
 
+/* Industrial safety theme tokens */
+:root {
+  --safety-warning: oklch(0.86 0.17 95);
+  --safety-alert: oklch(0.72 0.19 50);
+  --safety-danger: oklch(0.65 0.24 27);
+  --surface-plant: oklch(0.22 0.02 250);
+  --surface-zone: oklch(0.32 0.02 250);
+}
+.dark {
+  --safety-warning: oklch(0.86 0.17 95);
+  --safety-alert: oklch(0.72 0.19 50);
+  --safety-danger: oklch(0.65 0.24 27);
+  --surface-plant: oklch(0.18 0.015 250);
+  --surface-zone: oklch(0.28 0.018 250);
+}
+
+@theme inline {
+  --color-safety-warning: var(--safety-warning);
+  --color-safety-alert: var(--safety-alert);
+  --color-safety-danger: var(--safety-danger);
+  --color-surface-plant: var(--surface-plant);
+  --color-surface-zone: var(--surface-zone);
+}
+
 @layer base {
   * {
     border-color: var(--color-border);
