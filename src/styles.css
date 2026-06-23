@@ -156,6 +156,8 @@
   --color-surface-zone: var(--surface-zone);
 }
 
+@source inline("{bg,text,border,ring,focus-visible:ring,hover:border}-safety-{warning,alert,danger} bg-safety-{warning,alert,danger}/10 border-safety-{warning,alert,danger}/60 border-safety-{warning,alert,danger}/40");
+
 @layer base {
   * {
     border-color: var(--color-border);
