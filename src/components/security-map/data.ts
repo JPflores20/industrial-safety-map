@@ -1,65 +1,245 @@
+// ─── Area interface ────────────────────────────────────────────────────────────
+export type EstadoArea = "al-dia" | "pendiente" | "vencido";
+
 export interface Area {
   id: string;
   nombre: string;
   responsable: string;
   equipo: string;
   riesgos: string[];
+  // ── Compliance fields (Mejora 1) ──
+  estado: EstadoArea;
+  cumplimiento: number; // 0–100
+  ultimaInspeccion: string; // ISO date string YYYY-MM-DD
+  proximaInspeccion: string;
 }
 
 export const areas: Area[] = [
-  {
-    id: "cto-bombas",
-    nombre: "Cuarto de Bombas",
-    responsable: "Jaime López Chávez",
-    equipo: "MASH-RAINBOW",
-    riesgos: [
-      "Caídas a desnivel",
-      "Riesgo Eléctrico",
-      "Objetos a baja altura",
-      "Corriente estática",
-    ],
-  },
-  {
-    id: "planta-baja",
-    nombre: "Planta Baja C 1 y 2",
-    responsable: "Edgar Zamarrón Acosta",
-    equipo: "MASH-RAINBOW",
-    riesgos: [
-      "Tránsito de montacargas",
-      "Superficies calientes",
-      "Atrapamiento",
-    ],
-  },
-  {
-    id: "mezanine",
-    nombre: "Mezanine - Sección Cocedor/Macerador",
-    responsable: "Omar Alberto Robles Sosa",
-    equipo: "LOS CAZADORES DEL AMARGOR",
-    riesgos: [
-      "Espacios confinados",
-      "Riesgo por obstáculos",
-      "Temperaturas Altas",
-    ],
-  },
-  {
-    id: "subestacion",
-    nombre: "Subestación Eléctrica 1",
-    responsable: "Juan Antonio Rivera Najar",
-    equipo: "NAHUALES",
-    riesgos: [
-      "Riesgo Eléctrico Alta Tensión",
-      "Incendio",
-      "Arco Eléctrico",
-    ],
-  },
+  { id: "lobby-recepcion", nombre: "Lobby Recepción", responsable: "HUGO ALBERTO CARDONA ESPINOZA", equipo: "LOS PANCHITOS", riesgos: ["Caídas a desnivel"], estado: "al-dia", cumplimiento: 95, ultimaInspeccion: "2026-06-10", proximaInspeccion: "2026-07-10" },
+  { id: "planta-baja-c-1-y-2", nombre: "Planta baja C 1 Y 2", responsable: "EDGAR ZAMARRON ACOSTA", equipo: "MASH-RAINBOW", riesgos: ["Superficies calientes", "Ruido"], estado: "al-dia", cumplimiento: 88, ultimaInspeccion: "2026-06-05", proximaInspeccion: "2026-07-05" },
+  { id: "cuarto-de-bombas", nombre: "Cuarto de bombas", responsable: "JAIME LOPEZ CHAVEZ", equipo: "MASH-RAINBOW", riesgos: ["Riesgo Eléctrico", "Objetos a baja altura", "Corriente estática"], estado: "al-dia", cumplimiento: 92, ultimaInspeccion: "2026-06-01", proximaInspeccion: "2026-07-01" },
+  { id: "planta-baja-c-3-y-4", nombre: "Planta baja C 3 Y 4", responsable: "RIGOBERTO MOTA CORTES", equipo: "MASH-RAINBOW", riesgos: ["Atrapamiento", "Superficies calientes"], estado: "pendiente", cumplimiento: 71, ultimaInspeccion: "2026-05-15", proximaInspeccion: "2026-06-15" },
+  { id: "area-de-atemperamiento", nombre: "Area de atemperamiento", responsable: "J GUADALUPE GUZMAN MUÑOZ", equipo: "MASH-RAINBOW", riesgos: ["Temperatura baja"], estado: "al-dia", cumplimiento: 100, ultimaInspeccion: "2026-06-18", proximaInspeccion: "2026-07-18" },
+  { id: "subestacion-electrica-1", nombre: "Subestacion Electrica 1", responsable: "JUAN ANTONIO RIVERA NAJAR", equipo: "NAHUALES", riesgos: ["Riesgo Eléctrico Alta Tensión", "Arco eléctrico"], estado: "al-dia", cumplimiento: 98, ultimaInspeccion: "2026-06-20", proximaInspeccion: "2026-07-20" },
+  { id: "tableros-electricos-cuarto-de-bombas", nombre: "Tableros electricos cuarto de bombas", responsable: "JUAN ANTONIO RIVERA NAJAR", equipo: "NAHUALES", riesgos: ["Riesgo Eléctrico"], estado: "al-dia", cumplimiento: 96, ultimaInspeccion: "2026-06-20", proximaInspeccion: "2026-07-20" },
+  { id: "seccion-cocedor-macerador", nombre: "Sección Cocedor-Macerador", responsable: "OMAR ALBERTO ROBLES SOSA", equipo: "LOS CAZADORES DEL AMARGOR", riesgos: ["Espacios confinados", "Temperaturas Altas"], estado: "pendiente", cumplimiento: 67, ultimaInspeccion: "2026-05-20", proximaInspeccion: "2026-06-20" },
+  { id: "seccion-olla-rotapool", nombre: "Sección Olla-Rotapool", responsable: "URIEL ESCOBEDO MURO", equipo: "LOS CAZADORES DEL AMARGOR", riesgos: ["Superficies calientes", "Atrapamiento"], estado: "al-dia", cumplimiento: 85, ultimaInspeccion: "2026-06-08", proximaInspeccion: "2026-07-08" },
+  { id: "subestacion-electrica-2", nombre: "Subestacion Electrica 2", responsable: "JUAN ANTONIO RIVERA NAJAR", equipo: "NAHUALES", riesgos: ["Riesgo Eléctrico Alta Tensión"], estado: "al-dia", cumplimiento: 97, ultimaInspeccion: "2026-06-20", proximaInspeccion: "2026-07-20" },
+  { id: "bodega-de-lupulo-1", nombre: "Bodega de lupulo 1", responsable: "JOSÉ LUIS MALDONADO", equipo: "CUCHILLAS", riesgos: ["Transito de montacargas", "Temperatura baja"], estado: "vencido", cumplimiento: 48, ultimaInspeccion: "2026-03-10", proximaInspeccion: "2026-04-10" },
+  { id: "bodega-de-lupulo-2-y-cuarto-de-atempermiento", nombre: "Bodega de lupulo 2 y Cuarto de atempermiento", responsable: "ADRIAN HERNANDEZ DE AVILA", equipo: "CUCHILLAS", riesgos: ["Temperatura baja"], estado: "al-dia", cumplimiento: 90, ultimaInspeccion: "2026-06-12", proximaInspeccion: "2026-07-12" },
+  { id: "taller-de-molinos", nombre: "Taller de Molinos", responsable: "JOSE MARIA LUJAN SORIANO", equipo: "NAHUALES", riesgos: ["Ruido", "Riesgo de explosión (Polvos)"], estado: "pendiente", cumplimiento: 74, ultimaInspeccion: "2026-05-28", proximaInspeccion: "2026-06-28" },
+  { id: "cto-electrico-plcs", nombre: "Cto electrico PLCs", responsable: "JUAN ANTONIO RIVERA NAJAR", equipo: "NAHUALES", riesgos: ["Riesgo Eléctrico"], estado: "al-dia", cumplimiento: 94, ultimaInspeccion: "2026-06-19", proximaInspeccion: "2026-07-19" },
+  { id: "comedores", nombre: "Comedores", responsable: "ERIKA IVONE IBARRA NAVA", equipo: "LOS CAZADORES DEL AMARGOR", riesgos: ["Caídas a desnivel"], estado: "al-dia", cumplimiento: 100, ultimaInspeccion: "2026-06-22", proximaInspeccion: "2026-07-22" },
+  { id: "vestidores-banos-hombres", nombre: "Vestidores/Baños (Hombres)", responsable: "JUAN ANTONIO VALDEZ LICERIO", equipo: "LOS CAZADORES DEL AMARGOR", riesgos: ["Caídas a desnivel"], estado: "al-dia", cumplimiento: 100, ultimaInspeccion: "2026-06-22", proximaInspeccion: "2026-07-22" },
+  { id: "caseta-de-quimicos", nombre: "Caseta de quimicos", responsable: "JOSE MANUEL VARELA ROSALES", equipo: "LOS PANCHITOS", riesgos: ["Sustancias químicas corrosivas"], estado: "al-dia", cumplimiento: 93, ultimaInspeccion: "2026-06-14", proximaInspeccion: "2026-07-14" },
+  { id: "area-recibo-de-quimicos", nombre: "Area Recibo de quimicos", responsable: "HECTOR HUGO VALDEZ PIÑA", equipo: "LOS PANCHITOS", riesgos: ["Sustancias químicas corrosivas", "Transito de camiones"], estado: "pendiente", cumplimiento: 68, ultimaInspeccion: "2026-05-22", proximaInspeccion: "2026-06-22" },
+  { id: "area-recibo-de-dextrosa", nombre: "Area Recibo de dextrosa y tanque de almacenamiento", responsable: "EDGAR EMANUEL JUAREZ ALBA", equipo: "LOS PANCHITOS", riesgos: ["Transito de camiones"], estado: "al-dia", cumplimiento: 87, ultimaInspeccion: "2026-06-11", proximaInspeccion: "2026-07-11" },
+  { id: "cuarto-de-control-y-vitral", nombre: "Cuarto de control y Vitral", responsable: "CARLOS RIVERA REYES", equipo: "MASH-RAINBOW", riesgos: ["Caídas a desnivel"], estado: "al-dia", cumplimiento: 91, ultimaInspeccion: "2026-06-09", proximaInspeccion: "2026-07-09" },
+  { id: "quas-team-room", nombre: "QUAs/Team room", responsable: "J MANUEL RAYGOZA JUAREZ", equipo: "MASH-RAINBOW", riesgos: ["Riesgo a definir"], estado: "pendiente", cumplimiento: 55, ultimaInspeccion: "2026-04-30", proximaInspeccion: "2026-05-30" },
+  { id: "azotea-chiller", nombre: "Azotea de acceso chiller de glicol, Azotea de oficinas", responsable: "ALBERTO NUÑEZ VELEZ", equipo: "MASH-RAINBOW", riesgos: ["Trabajo en alturas"], estado: "al-dia", cumplimiento: 89, ultimaInspeccion: "2026-06-16", proximaInspeccion: "2026-07-16" },
+  { id: "cuarto-de-valvulas", nombre: "Cuarto de Valvulas", responsable: "EDUARDO NERI DE LUNA", equipo: "NAHUALES", riesgos: ["Atrapamiento"], estado: "al-dia", cumplimiento: 82, ultimaInspeccion: "2026-06-03", proximaInspeccion: "2026-07-03" },
+  { id: "oficinas-de-mtto", nombre: "Oficinas de mtto", responsable: "SERGIO TRUJILLO", equipo: "NAHUALES", riesgos: ["Riesgo a definir"], estado: "pendiente", cumplimiento: 60, ultimaInspeccion: "2026-05-10", proximaInspeccion: "2026-06-10" },
+  { id: "bodega-de-mat-aux", nombre: "Bodega de mat aux", responsable: "EDUARDO VALLE ARIAS", equipo: "MOSTO-BOYS", riesgos: ["Transito de montacargas"], estado: "vencido", cumplimiento: 42, ultimaInspeccion: "2026-02-20", proximaInspeccion: "2026-03-20" },
+  { id: "nivel-tolvas-molido", nombre: "Nivel tolvas molido", responsable: "J JESUS RIVERA MEDINA", equipo: "MOSTO-BOYS", riesgos: ["Riesgo de explosión (Polvos)"], estado: "al-dia", cumplimiento: 86, ultimaInspeccion: "2026-06-07", proximaInspeccion: "2026-07-07" },
+  { id: "azotea-coc-y-acidulacion", nombre: "Azotea coc y Area de acidulación", responsable: "JOSE LUIS CAZARES PINALES", equipo: "MOSTO-BOYS", riesgos: ["Trabajo en alturas"], estado: "al-dia", cumplimiento: 91, ultimaInspeccion: "2026-06-13", proximaInspeccion: "2026-07-13" },
+  { id: "nivel-molinos", nombre: "Nivel molinos", responsable: "ALDO ADRIAN SIFUENTES VELOZ", equipo: "MOSTO-BOYS", riesgos: ["Atrapamiento", "Ruido"], estado: "pendiente", cumplimiento: 73, ultimaInspeccion: "2026-05-25", proximaInspeccion: "2026-06-25" },
+  { id: "nivel-soplantes", nombre: "Nivel soplantes y Azotea Soplantes", responsable: "JOSE CARLOS CARDONA LOERA", equipo: "MOSTO-BOYS", riesgos: ["Ruido", "Trabajo en alturas"], estado: "al-dia", cumplimiento: 84, ultimaInspeccion: "2026-06-06", proximaInspeccion: "2026-07-06" },
+  { id: "sotano-silos", nombre: "Sotano silos", responsable: "MARIO ALBERTO ZAMARRIPA LLANAS", equipo: "CUCHILLAS", riesgos: ["Espacios confinados"], estado: "vencido", cumplimiento: 38, ultimaInspeccion: "2026-01-15", proximaInspeccion: "2026-02-15" },
+  { id: "linternilla-1-y-2", nombre: "Linternilla 1 Y 2", responsable: "CONCEPCIÓN REYES MONTERO", equipo: "CUCHILLAS", riesgos: ["Trabajo en alturas"], estado: "al-dia", cumplimiento: 88, ultimaInspeccion: "2026-06-17", proximaInspeccion: "2026-07-17" },
+  { id: "cuarto-de-filtros", nombre: "Cuarto de filtros", responsable: "VALERIA NATALY CASTAÑON RAMIREZ", equipo: "CUCHILLAS", riesgos: ["Riesgo de explosión (Polvos)"], estado: "al-dia", cumplimiento: 79, ultimaInspeccion: "2026-06-04", proximaInspeccion: "2026-07-04" },
+  { id: "tolvas-de-recibo-de-grano", nombre: "Tolvas de Recibo de grano", responsable: "ABEL GUILLERMO MAZATAN PAREDES", equipo: "CUCHILLAS", riesgos: ["Caídas a desnivel"], estado: "pendiente", cumplimiento: 65, ultimaInspeccion: "2026-05-18", proximaInspeccion: "2026-06-18" },
+  { id: "sub-estacion-electrica-silos", nombre: "Sub estacion electrica silos", responsable: "ARTURO RODARTE", equipo: "NAHUALES", riesgos: ["Riesgo Eléctrico Alta Tensión"], estado: "al-dia", cumplimiento: 95, ultimaInspeccion: "2026-06-21", proximaInspeccion: "2026-07-21" },
+  { id: "tolvas-generales-de-bagazo", nombre: "Tolvas generales de bagazo", responsable: "MANUEL DE JESUS DEL REAL ESQUIVEL", equipo: "CUCHILLAS", riesgos: ["Espacios confinados"], estado: "vencido", cumplimiento: 45, ultimaInspeccion: "2026-02-28", proximaInspeccion: "2026-03-28" },
+  { id: "cuarto-de-carga-montacargas", nombre: "Cuarto de Carga - Montacargas", responsable: "JOSE AMADOR RODRIGUEZ JUAREZ", equipo: "MOSTO-BOYS", riesgos: ["Transito de montacargas", "Riesgo Eléctrico"], estado: "al-dia", cumplimiento: 83, ultimaInspeccion: "2026-06-02", proximaInspeccion: "2026-07-02" },
+  { id: "andenes-area-descarga", nombre: "Andenes (Norte, Poniente) y Area de desacarga", responsable: "MANUEL DE JESUS CHAVEZ GARCIA", equipo: "MOSTO-BOYS", riesgos: ["Transito de camiones", "Transito de montacargas"], estado: "pendiente", cumplimiento: 70, ultimaInspeccion: "2026-05-30", proximaInspeccion: "2026-06-30" },
+  { id: "area-bajo-mezzanine", nombre: "Área Bajo Mezzanine", responsable: "J MARIO TRUJILLO MEZA", equipo: "LOS CAZADORES DEL AMARGOR", riesgos: ["Objetos a baja altura"], estado: "al-dia", cumplimiento: 80, ultimaInspeccion: "2026-06-10", proximaInspeccion: "2026-07-10" },
+  { id: "seccion-a-y-b", nombre: "Sección A y B", responsable: "JUAN RAMON JIMENEZ DELGADO", equipo: "LOS CAZADORES DEL AMARGOR", riesgos: ["Riesgo a definir"], estado: "pendiente", cumplimiento: 58, ultimaInspeccion: "2026-05-05", proximaInspeccion: "2026-06-05" },
+  { id: "mezanine-disolucion", nombre: "Mezanine Disolución (TQ 1 Y TQ 2)", responsable: "MARCO AURELIO CUAUCOATL RAMIREZ", equipo: "LOS CAZADORES DEL AMARGOR", riesgos: ["Caídas a desnivel"], estado: "al-dia", cumplimiento: 92, ultimaInspeccion: "2026-06-15", proximaInspeccion: "2026-07-15" },
+  { id: "oficina-bodega-de-grits", nombre: "Oficina Bodega de Grits", responsable: "LEOBARDO VARELA NIETO", equipo: "LOS PANCHITOS", riesgos: ["Riesgo a definir"], estado: "pendiente", cumplimiento: 52, ultimaInspeccion: "2026-04-25", proximaInspeccion: "2026-05-25" },
+  { id: "eto-bodega-de-grits", nombre: "ETO Bodega de Grits", responsable: "SANTIAGO HERRERA AMADOR", equipo: "LOS PANCHITOS", riesgos: ["Riesgo de explosión (Polvos)"], estado: "al-dia", cumplimiento: 77, ultimaInspeccion: "2026-06-06", proximaInspeccion: "2026-07-06" },
+  { id: "cto-electrico", nombre: "Cto electrico", responsable: "ARTURO RODARTE", equipo: "NAHUALES", riesgos: ["Riesgo Eléctrico"], estado: "al-dia", cumplimiento: 93, ultimaInspeccion: "2026-06-19", proximaInspeccion: "2026-07-19" },
+  { id: "bancos-de-trabajo", nombre: "Bancos de Trabajo", responsable: "VICTOR SIMENTAL", equipo: "NAHUALES", riesgos: ["Riesgo a definir"], estado: "vencido", cumplimiento: 40, ultimaInspeccion: "2026-02-10", proximaInspeccion: "2026-03-10" },
+  { id: "area-de-motores", nombre: "Area de Motores", responsable: "ARTURO VELAZQUEZ", equipo: "NAHUALES", riesgos: ["Ruido", "Atrapamiento"], estado: "al-dia", cumplimiento: 86, ultimaInspeccion: "2026-06-08", proximaInspeccion: "2026-07-08" },
+  { id: "area-de-valvulas", nombre: "Area de Valvulas", responsable: "VITOR MENDOZA", equipo: "NAHUALES", riesgos: ["Atrapamiento"], estado: "al-dia", cumplimiento: 81, ultimaInspeccion: "2026-06-03", proximaInspeccion: "2026-07-03" },
+  { id: "area-de-soldadura", nombre: "Area de Soldadura", responsable: "FLAVIO CESAR DIAZ MALDONADO", equipo: "NAHUALES", riesgos: ["Radiaciones no ionizantes", "Incendio"], estado: "al-dia", cumplimiento: 88, ultimaInspeccion: "2026-06-11", proximaInspeccion: "2026-07-11" },
 ];
 
+// ─── Compliance helpers ────────────────────────────────────────────────────────
+export const ESTADO_META: Record<EstadoArea, {
+  label: string;
+  color: string;
+  bg: string;
+  border: string;
+  dot: string;
+  chipActive: string;
+  chipInactive: string;
+}> = {
+  "al-dia": {
+    label: "Al día",
+    color: "text-emerald-400",
+    bg: "bg-emerald-500/10",
+    border: "border-emerald-500/40",
+    dot: "bg-emerald-400",
+    chipActive: "border-emerald-400 bg-emerald-400/20 text-emerald-300",
+    chipInactive: "border-border text-muted-foreground hover:border-emerald-400/50",
+  },
+  "pendiente": {
+    label: "Pendiente",
+    color: "text-amber-400",
+    bg: "bg-amber-500/10",
+    border: "border-amber-500/40",
+    dot: "bg-amber-400",
+    chipActive: "border-amber-400 bg-amber-400/20 text-amber-300",
+    chipInactive: "border-border text-muted-foreground hover:border-amber-400/50",
+  },
+  "vencido": {
+    label: "Vencido",
+    color: "text-red-400",
+    bg: "bg-red-500/10",
+    border: "border-red-500/40",
+    dot: "bg-red-400",
+    chipActive: "border-red-400 bg-red-400/20 text-red-300",
+    chipInactive: "border-border text-muted-foreground hover:border-red-400/50",
+  },
+};
+
+// ─── Risk level ────────────────────────────────────────────────────────────────
 export type RiskLevel = "danger" | "alert" | "warning";
 
 export function classifyRisk(risk: string): RiskLevel {
   const r = risk.toLowerCase();
-  if (/eléctric|electric|incendio|arco|alta tensión/.test(r)) return "danger";
-  if (/caída|caida|atrapamiento|montacargas|confinad|obstácul|obstacul/.test(r))
+  if (/eléctric|electric|incendio|arco|alta tensión|tensión/.test(r)) return "danger";
+  if (/explosión|explosion/.test(r)) return "danger";
+  if (/caída|caida|atrapamiento|montacargas|confinad|obstácul|obstacul|baja altura|alturas|desnivel|corrosiv|radiac/.test(r))
     return "alert";
   return "warning";
 }
+
+export function getMaxRiskLevel(riesgos: string[]): RiskLevel {
+  if (riesgos.some((r) => classifyRisk(r) === "danger")) return "danger";
+  if (riesgos.some((r) => classifyRisk(r) === "alert")) return "alert";
+  return "warning";
+}
+
+// ─── Risk categories ───────────────────────────────────────────────────────────
+export type RiskCategory =
+  | "electrico"
+  | "fuego"
+  | "alturas"
+  | "atrapamiento"
+  | "otro";
+
+export const RISK_CATEGORIES: {
+  id: RiskCategory;
+  label: string;
+  color: string;
+  hex: string;
+}[] = [
+  { id: "electrico", label: "Eléctrico", color: "text-yellow-400", hex: "#facc15" },
+  { id: "fuego", label: "Fuego / Calor", color: "text-red-400", hex: "#f87171" },
+  { id: "alturas", label: "Alturas / Caídas", color: "text-sky-400", hex: "#38bdf8" },
+  { id: "atrapamiento", label: "Atrapamiento", color: "text-orange-400", hex: "#fb923c" },
+  { id: "otro", label: "Otro", color: "text-slate-400", hex: "#94a3b8" },
+];
+
+export function getRiskCategory(risk: string): RiskCategory {
+  const r = risk.toLowerCase();
+  if (/eléctric|electric|tensión|arco/.test(r)) return "electrico";
+  if (/explosión|explosion|incendio|caliente|temperatura/.test(r)) return "fuego";
+  if (/caída|caida|alturas|desnivel/.test(r)) return "alturas";
+  if (/atrapamiento|confinad|corrosiv|radiac/.test(r)) return "atrapamiento";
+  return "otro";
+}
+
+// ─── Team metadata ─────────────────────────────────────────────────────────────
+export const TEAM_META: Record<
+  string,
+  { color: string; hex: string; activeChip: string; inactiveChip: string; dot: string; border: string; header: string }
+> = {
+  "MASH-RAINBOW": {
+    color: "text-cyan-400",
+    hex: "#22d3ee",
+    activeChip: "border-cyan-400 bg-cyan-400/20 text-cyan-300",
+    inactiveChip: "border-border text-muted-foreground hover:border-cyan-400/50",
+    dot: "bg-cyan-400",
+    border: "border-cyan-500/20",
+    header: "text-cyan-400 border-cyan-500/30",
+  },
+  "NAHUALES": {
+    color: "text-violet-400",
+    hex: "#a78bfa",
+    activeChip: "border-violet-400 bg-violet-400/20 text-violet-300",
+    inactiveChip: "border-border text-muted-foreground hover:border-violet-400/50",
+    dot: "bg-violet-400",
+    border: "border-violet-500/20",
+    header: "text-violet-400 border-violet-500/30",
+  },
+  "LOS CAZADORES DEL AMARGOR": {
+    color: "text-orange-400",
+    hex: "#fb923c",
+    activeChip: "border-orange-400 bg-orange-400/20 text-orange-300",
+    inactiveChip: "border-border text-muted-foreground hover:border-orange-400/50",
+    dot: "bg-orange-400",
+    border: "border-orange-500/20",
+    header: "text-orange-400 border-orange-500/30",
+  },
+  "CUCHILLAS": {
+    color: "text-rose-400",
+    hex: "#fb7185",
+    activeChip: "border-rose-400 bg-rose-400/20 text-rose-300",
+    inactiveChip: "border-border text-muted-foreground hover:border-rose-400/50",
+    dot: "bg-rose-400",
+    border: "border-rose-500/20",
+    header: "text-rose-400 border-rose-500/30",
+  },
+  "MOSTO-BOYS": {
+    color: "text-emerald-400",
+    hex: "#34d399",
+    activeChip: "border-emerald-400 bg-emerald-400/20 text-emerald-300",
+    inactiveChip: "border-border text-muted-foreground hover:border-emerald-400/50",
+    dot: "bg-emerald-400",
+    border: "border-emerald-500/20",
+    header: "text-emerald-400 border-emerald-500/30",
+  },
+  "LOS PANCHITOS": {
+    color: "text-amber-400",
+    hex: "#fbbf24",
+    activeChip: "border-amber-400 bg-amber-400/20 text-amber-300",
+    inactiveChip: "border-border text-muted-foreground hover:border-amber-400/50",
+    dot: "bg-amber-400",
+    border: "border-amber-500/20",
+    header: "text-amber-400 border-amber-500/30",
+  },
+};
+
+export const DEFAULT_TEAM_META = {
+  color: "text-slate-400",
+  hex: "#94a3b8",
+  activeChip: "border-slate-400 bg-slate-400/20 text-slate-300",
+  inactiveChip: "border-border text-muted-foreground",
+  dot: "bg-slate-400",
+  border: "border-slate-500/20",
+  header: "text-slate-400 border-slate-500/30",
+};
+
+// ─── KPI Mensual — Programa de Prerrequisitos 2026 (Mejora 2) ─────────────────
+export interface KpiMes {
+  mes: string;
+  mesCorto: string;
+  cumplimiento: number;       // % cumplimiento general del programa
+  auditoriasRealizadas: number;
+  auditoriasPlaneadas: number;
+  observacionesAbiertas: number;
+  observacionesCerradas: number;
+  accionesCorrectivas: number;
+  accionesCerradas: number;
+}
+
+export const KPI_MENSUAL: KpiMes[] = [
+  { mes: "Enero 2026",   mesCorto: "Ene", cumplimiento: 72, auditoriasRealizadas: 18, auditoriasPlaneadas: 22, observacionesAbiertas: 14, observacionesCerradas: 8,  accionesCorrectivas: 11, accionesCerradas: 6 },
+  { mes: "Febrero 2026", mesCorto: "Feb", cumplimiento: 75, auditoriasRealizadas: 20, auditoriasPlaneadas: 22, observacionesAbiertas: 12, observacionesCerradas: 10, accionesCorrectivas: 9,  accionesCerradas: 7 },
+  { mes: "Marzo 2026",   mesCorto: "Mar", cumplimiento: 78, auditoriasRealizadas: 21, auditoriasPlaneadas: 24, observacionesAbiertas: 10, observacionesCerradas: 13, accionesCorrectivas: 8,  accionesCerradas: 8 },
+  { mes: "Abril 2026",   mesCorto: "Abr", cumplimiento: 82, auditoriasRealizadas: 23, auditoriasPlaneadas: 24, observacionesAbiertas: 9,  observacionesCerradas: 15, accionesCorrectivas: 7,  accionesCerradas: 9 },
+  { mes: "Mayo 2026",    mesCorto: "May", cumplimiento: 85, auditoriasRealizadas: 24, auditoriasPlaneadas: 24, observacionesAbiertas: 7,  observacionesCerradas: 17, accionesCorrectivas: 6,  accionesCerradas: 10 },
+  { mes: "Junio 2026",   mesCorto: "Jun", cumplimiento: 88, auditoriasRealizadas: 22, auditoriasPlaneadas: 24, observacionesAbiertas: 5,  observacionesCerradas: 18, accionesCorrectivas: 4,  accionesCerradas: 11 },
+];

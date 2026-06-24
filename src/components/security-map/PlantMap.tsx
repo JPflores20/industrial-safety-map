@@ -1,5 +1,26 @@
-import { Droplet, Factory, Layers, Zap } from "lucide-react";
-import type { Area } from "./data";
+import {
+  Factory,
+  Zap,
+  Flame,
+  ArrowDownToLine,
+  ShieldAlert,
+  AlertTriangle,
+  Thermometer,
+} from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  getMaxRiskLevel,
+  TEAM_META,
+  DEFAULT_TEAM_META,
+  ESTADO_META,
+  type Area,
+} from "./data";
+import { TeamLogo } from "./TeamLogo";
 
 interface Props {
   areas: Area[];
@@ -7,144 +28,235 @@ interface Props {
   onSelect: (id: string) => void;
 }
 
-type Accent = "warning" | "alert" | "danger";
+// ─── Risk icon selector ────────────────────────────────────────────────────────
+function RiskIcon({ risk }: { risk: string }) {
+  const r = risk.toLowerCase();
+  if (/eléctric|electric|tensión|arco/.test(r))
+    return <Zap className="h-3 w-3 text-yellow-400" />;
+  if (/explosión|explosion|incendio/.test(r))
+    return <Flame className="h-3 w-3 text-red-400" />;
+  if (/caliente|temperatura alta/.test(r))
+    return <Thermometer className="h-3 w-3 text-red-400" />;
+  if (/temperatura baja/.test(r))
+    return <Thermometer className="h-3 w-3 text-blue-400" />;
+  if (/caída|caida|alturas|desnivel/.test(r))
+    return <ArrowDownToLine className="h-3 w-3 text-sky-400" />;
+  if (/atrapamiento|confinad|corrosiv|radiac/.test(r))
+    return <ShieldAlert className="h-3 w-3 text-orange-400" />;
+  return <AlertTriangle className="h-3 w-3 text-slate-400" />;
+}
 
-const accentStyles: Record<
-  Accent,
-  {
-    icon: string;
-    badge: string;
-    selected: string;
-    ring: string;
-  }
-> = {
-  warning: {
-    icon: "text-safety-warning",
-    badge:
-      "border-safety-warning/60 bg-safety-warning/10 text-safety-warning",
-    selected:
-      "border-safety-warning shadow-[0_0_24px_-4px_var(--color-safety-warning)]",
-    ring: "focus-visible:ring-safety-warning",
+// ─── Semáforo badge ────────────────────────────────────────────────────────────
+const LEVEL_META = {
+  danger: {
+    ring: "border-red-500/40 bg-red-500/10",
+    dot: "bg-red-400",
+    label: "Peligro",
   },
   alert: {
-    icon: "text-safety-alert",
-    badge: "border-safety-alert/60 bg-safety-alert/10 text-safety-alert",
-    selected:
-      "border-safety-alert shadow-[0_0_24px_-4px_var(--color-safety-alert)]",
-    ring: "focus-visible:ring-safety-alert",
+    ring: "border-orange-500/40 bg-orange-500/10",
+    dot: "bg-orange-400",
+    label: "Alerta",
   },
-  danger: {
-    icon: "text-safety-danger",
-    badge: "border-safety-danger/60 bg-safety-danger/10 text-safety-danger",
-    selected:
-      "border-safety-danger shadow-[0_0_24px_-4px_var(--color-safety-danger)]",
-    ring: "focus-visible:ring-safety-danger",
+  warning: {
+    ring: "border-amber-500/40 bg-amber-500/10",
+    dot: "bg-amber-400",
+    label: "Precaución",
   },
-};
+} as const;
 
-const zoneMeta: Record<
-  string,
-  { icon: typeof Zap; gridArea: string; accent: Accent }
-> = {
-  subestacion: { icon: Zap, gridArea: "1 / 1 / 2 / 2", accent: "danger" },
-  mezanine: { icon: Layers, gridArea: "1 / 2 / 2 / 3", accent: "alert" },
-  "cto-bombas": {
-    icon: Droplet,
-    gridArea: "2 / 1 / 3 / 2",
-    accent: "warning",
-  },
-  "planta-baja": {
-    icon: Factory,
-    gridArea: "2 / 2 / 3 / 3",
-    accent: "alert",
-  },
-};
+// ─── Compliance mini bar ───────────────────────────────────────────────────────
+function MiniComplianceBar({ value, estado }: { value: number; estado: Area["estado"] }) {
+  const color =
+    estado === "vencido"
+      ? "bg-red-400"
+      : estado === "pendiente"
+        ? "bg-amber-400"
+        : "bg-emerald-400";
+  return (
+    <div className="h-0.5 w-full overflow-hidden rounded-full bg-border/30">
+      <div
+        className={`h-full rounded-full ${color}`}
+        style={{ width: `${value}%` }}
+      />
+    </div>
+  );
+}
 
 export function PlantMap({ areas, selectedId, onSelect }: Props) {
-  return (
-    <div className="relative h-full min-h-[520px] rounded-2xl border border-border bg-surface-plant p-4 shadow-inner">
-      {/* grid pattern background */}
-      <div
-        className="pointer-events-none absolute inset-0 rounded-2xl opacity-[0.12]"
-        style={{
-          backgroundImage:
-            "linear-gradient(var(--color-foreground) 1px, transparent 1px), linear-gradient(90deg, var(--color-foreground) 1px, transparent 1px)",
-          backgroundSize: "32px 32px",
-        }}
-      />
+  // Group areas by team
+  const grouped = new Map<string, Area[]>();
+  for (const area of areas) {
+    if (!grouped.has(area.equipo)) grouped.set(area.equipo, []);
+    grouped.get(area.equipo)!.push(area);
+  }
 
-      <div className="relative mb-3 flex items-center justify-between text-xs uppercase tracking-wider text-muted-foreground">
-        <span>Plano esquemático · Planta</span>
-        <span className="rounded border border-border px-2 py-0.5">N ↑</span>
+  // Running card index for stagger delays (computed during render, not a hook)
+  let cardIndex = 0;
+
+  if (grouped.size === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-border bg-surface-plant py-20 text-muted-foreground">
+        <AlertTriangle className="h-10 w-10 opacity-20" />
+        <p className="text-sm">No hay áreas con los filtros actuales.</p>
       </div>
+    );
+  }
 
-      <div
-        className="relative grid h-[calc(100%-2rem)] gap-4"
-        style={{
-          gridTemplateColumns: "1fr 1fr",
-          gridTemplateRows: "1fr 1fr",
-        }}
-      >
-        {areas.map((area) => {
-          const meta = zoneMeta[area.id];
-          const Icon = meta?.icon ?? Factory;
-          const isSelected = selectedId === area.id;
-          const accent: Accent = meta?.accent ?? "warning";
-          const styles = accentStyles[accent];
+  return (
+    <TooltipProvider delayDuration={250}>
+      <div className="flex flex-col gap-5">
+        {[...grouped.entries()].map(([equipo, teamAreas]) => {
+          const meta = TEAM_META[equipo] ?? DEFAULT_TEAM_META;
           return (
-            <button
-              key={area.id}
-              type="button"
-              aria-pressed={isSelected}
-              onClick={() => onSelect(area.id)}
-              style={{ gridArea: meta?.gridArea }}
-              className={`group relative flex flex-col justify-between rounded-xl border-2 bg-surface-zone p-4 text-left transition-all duration-200 hover:scale-[1.02] hover:shadow-lg focus:outline-none focus-visible:ring-2 ${styles.ring} ${
-                isSelected
-                  ? styles.selected
-                  : "border-border hover:border-foreground/40"
-              }`}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div
-                  className={`flex h-10 w-10 items-center justify-center rounded-lg bg-background/40 ${styles.icon}`}
+            <section key={equipo} aria-label={`Equipo ${equipo}`}>
+              {/* Group header */}
+              <div
+                className={`mb-3 flex items-center gap-2.5 rounded-lg border px-3 py-2 ${meta.border} bg-surface-plant`}
+              >
+                <TeamLogo team={equipo} className="h-5 w-5" />
+                <h2
+                  className={`text-xs font-bold uppercase tracking-widest ${meta.color}`}
                 >
-                  <Icon className="h-5 w-5" />
-                </div>
-                <span
-                  className={`rounded-full border px-2 py-0.5 text-xs font-medium ${styles.badge}`}
-                >
-                  {area.riesgos.length} riesgos
+                  {equipo}
+                </h2>
+                <span className="ml-auto text-xs text-muted-foreground">
+                  {teamAreas.length} área{teamAreas.length !== 1 ? "s" : ""}
                 </span>
               </div>
-              <div>
-                <h3 className="text-base font-semibold text-foreground">
-                  {area.nombre}
-                </h3>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {area.equipo}
-                </p>
+
+              {/* Cards grid */}
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {teamAreas.map((area) => {
+                  const delay = cardIndex++ * 40;
+                  const isSelected = selectedId === area.id;
+                  const maxLevel = getMaxRiskLevel(area.riesgos);
+                  const levelMeta = LEVEL_META[maxLevel];
+                  const estadoMeta = ESTADO_META[area.estado];
+
+                  return (
+                    <button
+                      key={area.id}
+                      id={`area-card-${area.id}`}
+                      type="button"
+                      aria-pressed={isSelected}
+                      onClick={() => onSelect(area.id)}
+                      style={{ animationDelay: `${delay}ms` }}
+                      className={`area-card-enter group relative flex flex-col gap-2 rounded-xl border-2 p-3 text-left transition-all duration-200 hover:scale-[1.02] focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 ${
+                        isSelected
+                          ? "border-amber-400 bg-amber-400/10 shadow-[0_0_22px_-4px_rgba(251,191,36,0.55)]"
+                          : "border-border bg-surface-zone hover:border-foreground/25 hover:shadow-md"
+                      }`}
+                    >
+                      {/* Risk semáforo — top-right */}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span
+                            className={`absolute right-2.5 top-2.5 flex h-4 w-4 items-center justify-center rounded-full border ${levelMeta.ring}`}
+                          >
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${levelMeta.dot}`}
+                            />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="left" className="text-xs">
+                          {levelMeta.label}
+                        </TooltipContent>
+                      </Tooltip>
+
+                      {/* Icon row */}
+                      <div className="flex items-start gap-2">
+                        <div
+                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors ${
+                            isSelected
+                              ? "bg-amber-400/20 text-amber-400"
+                              : "bg-background/40 text-muted-foreground"
+                          }`}
+                        >
+                          <Factory className="h-4 w-4" />
+                        </div>
+                        <span
+                          className={`rounded-full border px-1.5 py-0.5 text-[10px] font-bold leading-tight ${
+                            isSelected
+                              ? "border-amber-400/60 bg-amber-400/10 text-amber-300"
+                              : "border-border bg-background/30 text-muted-foreground"
+                          }`}
+                        >
+                          {area.riesgos.length}R
+                        </span>
+                      </div>
+
+                      {/* Area name */}
+                      <h3
+                        className={`line-clamp-2 pr-5 text-xs font-semibold leading-snug ${
+                          isSelected ? "text-amber-100" : "text-foreground"
+                        }`}
+                      >
+                        {area.nombre}
+                      </h3>
+
+                      {/* Risk icons with tooltips */}
+                      <div className="flex flex-wrap gap-1">
+                        {area.riesgos.slice(0, 3).map((r) => (
+                          <Tooltip key={r}>
+                            <TooltipTrigger asChild>
+                              <span
+                                className={`flex items-center justify-center rounded-md p-1 transition-colors ${
+                                  isSelected
+                                    ? "bg-amber-400/10 text-amber-300"
+                                    : "bg-background/30 text-muted-foreground"
+                                }`}
+                              >
+                                <RiskIcon risk={r} />
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent className="text-xs">
+                              {r}
+                            </TooltipContent>
+                          </Tooltip>
+                        ))}
+                        {area.riesgos.length > 3 && (
+                          <span className="rounded-md bg-background/20 px-1 py-0.5 text-[9px] text-muted-foreground">
+                            +{area.riesgos.length - 3}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* ── Compliance strip (Mejora 1) ── */}
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span
+                                className={`flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[9px] font-bold ${estadoMeta.border} ${estadoMeta.bg} ${estadoMeta.color}`}
+                              >
+                                <span className={`h-1 w-1 rounded-full ${estadoMeta.dot}`} />
+                                {estadoMeta.label}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom" className="text-xs">
+                              Última insp.: {area.ultimaInspeccion}
+                            </TooltipContent>
+                          </Tooltip>
+                          <span className="text-[9px] text-muted-foreground">
+                            {area.cumplimiento}%
+                          </span>
+                        </div>
+                        <MiniComplianceBar value={area.cumplimiento} estado={area.estado} />
+                      </div>
+
+                      {/* Selected glow line */}
+                      {isSelected && (
+                        <div className="absolute inset-x-0 bottom-0 h-0.5 rounded-b-xl bg-gradient-to-r from-amber-500 to-yellow-400" />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
-            </button>
+            </section>
           );
         })}
       </div>
-
-      {/* legend */}
-      <div className="relative mt-4 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-        <span className="font-medium uppercase tracking-wider">Leyenda:</span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-safety-warning" />
-          Precaución
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-safety-alert" />
-          Alerta
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-safety-danger" />
-          Peligro
-        </span>
-      </div>
-    </div>
+    </TooltipProvider>
   );
 }

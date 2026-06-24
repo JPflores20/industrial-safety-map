@@ -1,11 +1,52 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { Settings, ShieldAlert } from "lucide-react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState, useMemo } from "react";
+import {
+  Settings,
+  ShieldAlert,
+  Activity,
+  Download,
+  Moon,
+  Sun,
+  TableIcon,
+  MapIcon,
+  FileDown,
+} from "lucide-react";
+import { toast } from "sonner";
 import { PlantMap } from "@/components/security-map/PlantMap";
 import { DetailsPanel } from "@/components/security-map/DetailsPanel";
-import { areas } from "@/components/security-map/data";
+import { FilterBar } from "@/components/security-map/FilterBar";
+import { TableView } from "@/components/security-map/TableView";
+import { StatsPanel } from "@/components/security-map/StatsPanel";
+import { RankingView } from "@/components/security-map/RankingView";
+import {
+  areas,
+  getRiskCategory,
+  type RiskCategory,
+  type EstadoArea,
+} from "@/components/security-map/data";
+import { exportCSV, exportPDF } from "@/lib/export";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
+// ─── Route with URL search params ─────────────────────────────────────────────
 export const Route = createFileRoute("/")({
+  validateSearch: (
+    search: Record<string, unknown>
+  ): { area?: string; vista?: "mapa" | "tabla" | "ranking" } => ({
+    area: typeof search.area === "string" ? search.area : undefined,
+    vista:
+      search.vista === "tabla" ? "tabla" : search.vista === "ranking" ? "ranking" : search.vista === "mapa" ? "mapa" : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Mapa Interactivo de Seguridad Industrial" },
@@ -14,7 +55,10 @@ export const Route = createFileRoute("/")({
         content:
           "Visualiza áreas de la planta, responsables y riesgos de seguridad asociados.",
       },
-      { property: "og:title", content: "Mapa Interactivo de Seguridad Industrial" },
+      {
+        property: "og:title",
+        content: "Mapa Interactivo de Seguridad Industrial",
+      },
       {
         property: "og:description",
         content:
@@ -25,47 +69,314 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
+// ─── Main component ────────────────────────────────────────────────────────────
 function Index() {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const { area: initialArea, vista: initialVista } = Route.useSearch();
+  const navigate = useNavigate({ from: "/" });
+
+  // UI state
+  const [selectedId, setSelectedId] = useState<string | null>(
+    initialArea ?? null
+  );
+  const [vista, setVista] = useState<"mapa" | "tabla" | "ranking">(initialVista ?? "mapa");
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  // Filter state
+  const [query, setQuery] = useState("");
+  const [activeEquipos, setActiveEquipos] = useState<Set<string>>(new Set());
+  const [activeCategorias, setActiveCategorias] = useState<Set<RiskCategory>>(
+    new Set()
+  );
+  const [activeResponsable, setActiveResponsable] = useState("");
+  const [activeEstados, setActiveEstados] = useState<Set<EstadoArea>>(new Set());
+
+  // ── Computed filtered areas ──
+  const filteredAreas = useMemo(() => {
+    let result = areas;
+    if (query.trim()) {
+      const q = query.toLowerCase();
+      result = result.filter(
+        (a) =>
+          a.nombre.toLowerCase().includes(q) ||
+          a.responsable.toLowerCase().includes(q) ||
+          a.equipo.toLowerCase().includes(q) ||
+          a.riesgos.some((r) => r.toLowerCase().includes(q))
+      );
+    }
+    if (activeEquipos.size > 0) {
+      result = result.filter((a) => activeEquipos.has(a.equipo));
+    }
+    if (activeCategorias.size > 0) {
+      result = result.filter((a) =>
+        a.riesgos.some((r) => activeCategorias.has(getRiskCategory(r)))
+      );
+    }
+    if (activeResponsable) {
+      result = result.filter((a) => a.responsable === activeResponsable);
+    }
+    // ── Estado filter (Mejora 1) ──
+    if (activeEstados.size > 0) {
+      result = result.filter((a) => activeEstados.has(a.estado));
+    }
+    return result;
+  }, [query, activeEquipos, activeCategorias, activeResponsable, activeEstados]);
+
   const selectedArea = areas.find((a) => a.id === selectedId) ?? null;
 
+  // ── Handlers ──
+  function handleSelect(id: string) {
+    setSelectedId(id);
+    navigate({ search: (prev) => ({ ...prev, area: id }), resetScroll: false });
+  }
+
+  function handleVistaChange(v: "mapa" | "tabla" | "ranking") {
+    setVista(v);
+    navigate({ search: (prev) => ({ ...prev, vista: v }), resetScroll: false });
+  }
+
+  function handleToggleEquipo(equipo: string) {
+    setActiveEquipos((prev) => {
+      const next = new Set(prev);
+      next.has(equipo) ? next.delete(equipo) : next.add(equipo);
+      return next;
+    });
+  }
+
+  function handleToggleCategoria(cat: RiskCategory) {
+    setActiveCategorias((prev) => {
+      const next = new Set(prev);
+      next.has(cat) ? next.delete(cat) : next.add(cat);
+      return next;
+    });
+  }
+
+  function handleToggleEstado(estado: EstadoArea) {
+    setActiveEstados((prev) => {
+      const next = new Set(prev);
+      next.has(estado) ? next.delete(estado) : next.add(estado);
+      return next;
+    });
+  }
+
+  function clearAll() {
+    setQuery("");
+    setActiveEquipos(new Set());
+    setActiveCategorias(new Set());
+    setActiveResponsable("");
+    setActiveEstados(new Set());
+  }
+
+  function handleExportCSV() {
+    exportCSV(filteredAreas);
+    toast.success("CSV exportado", {
+      description: `${filteredAreas.length} áreas · seguridad-industrial.csv`,
+      duration: 3000,
+    });
+  }
+
+  function handleExportPDF() {
+    exportPDF();
+    toast.info("Abriendo diálogo de impresión…", { duration: 2000 });
+  }
+
   return (
-    <div className="dark min-h-screen bg-background text-foreground">
-      <header className="border-b border-border bg-card/40 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+    <div className={`${theme} min-h-screen bg-background text-foreground`}>
+      {/* ── Sticky header ── */}
+      <header className="sticky top-0 z-20 border-b border-border bg-card/60 backdrop-blur-md">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-3">
+          {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-safety-warning/40 bg-safety-warning/10 text-safety-warning">
+            <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-400">
               <ShieldAlert className="h-5 w-5" />
+              <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-green-400 ring-2 ring-background" />
             </div>
             <div>
-              <h1 className="text-lg font-semibold leading-tight">
-                Mapa Interactivo de Seguridad
+              <h1 className="text-base font-bold leading-tight tracking-tight">
+                Mapa de Seguridad Industrial
               </h1>
-              <p className="text-xs text-muted-foreground">
-                Plano de planta · Responsables y riesgos por área
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Activity className="h-3 w-3 text-green-400" />
+                {areas.length} áreas · Sistema activo
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            aria-label="Configuración"
-            className="flex h-9 w-9 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-          >
-            <Settings className="h-4 w-4" />
-          </button>
+
+          {/* Actions */}
+          <div className="flex items-center gap-2">
+            {/* Vista toggle */}
+            <div className="flex items-center rounded-lg border border-border bg-surface-zone p-0.5">
+              <button
+                id="vista-mapa-btn"
+                type="button"
+                onClick={() => handleVistaChange("mapa")}
+                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+                  vista === "mapa"
+                    ? "bg-amber-500/20 text-amber-300"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <MapIcon className="h-3.5 w-3.5" />
+                Mapa
+              </button>
+              <button
+                id="vista-tabla-btn"
+                type="button"
+                onClick={() => handleVistaChange("tabla")}
+                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+                  vista === "tabla"
+                    ? "bg-amber-500/20 text-amber-300"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <TableIcon className="h-3.5 w-3.5" />
+                Tabla
+              </button>
+              <button
+                id="vista-ranking-btn"
+                type="button"
+                onClick={() => handleVistaChange("ranking")}
+                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+                  vista === "ranking"
+                    ? "bg-amber-500/20 text-amber-300 shadow-[0_0_15px_-3px_rgba(245,158,11,0.4)]"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                🏆 Ranking
+              </button>
+            </div>
+
+            {/* Export dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  id="export-btn"
+                  type="button"
+                  className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Exportar
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuItem
+                  id="export-csv-item"
+                  onClick={handleExportCSV}
+                  className="gap-2 text-xs"
+                >
+                  <FileDown className="h-3.5 w-3.5" />
+                  Exportar CSV
+                  {filteredAreas.length < areas.length && (
+                    <span className="ml-auto text-[10px] text-muted-foreground">
+                      {filteredAreas.length} filas
+                    </span>
+                  )}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  id="export-pdf-item"
+                  onClick={handleExportPDF}
+                  className="gap-2 text-xs"
+                >
+                  <FileDown className="h-3.5 w-3.5" />
+                  Imprimir / PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Theme toggle */}
+            <button
+              id="theme-toggle-btn"
+              type="button"
+              aria-label="Cambiar tema"
+              onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
+              className="flex h-9 w-9 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              {theme === "dark" ? (
+                <Sun className="h-4 w-4" />
+              ) : (
+                <Moon className="h-4 w-4" />
+              )}
+            </button>
+
+            <button
+              id="settings-btn"
+              type="button"
+              aria-label="Configuración"
+              className="flex h-9 w-9 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <Settings className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-6 py-6">
-        <div className="grid gap-6 lg:grid-cols-[7fr_3fr]">
-          <PlantMap
-            areas={areas}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-          />
-          <DetailsPanel area={selectedArea} />
-        </div>
+      {/* ── Main layout ── */}
+      <main className="mx-auto max-w-7xl space-y-4 px-6 py-6">
+        {vista === "ranking" ? (
+          <RankingView />
+        ) : (
+          <>
+            {/* Stats dashboard (collapsible) */}
+            <StatsPanel />
+
+            {/* Filters */}
+            <FilterBar
+              query={query}
+              onQueryChange={setQuery}
+              activeEquipos={activeEquipos}
+              onToggleEquipo={handleToggleEquipo}
+              activeCategorias={activeCategorias}
+              onToggleCategoria={handleToggleCategoria}
+              activeResponsable={activeResponsable}
+              onResponsableChange={setActiveResponsable}
+              activeEstados={activeEstados}
+              onToggleEstado={handleToggleEstado}
+              totalVisible={filteredAreas.length}
+              onClearAll={clearAll}
+            />
+
+            {/* Two-column layout */}
+            <div className="flex gap-6 lg:items-start">
+              {/* Left — scrollable content */}
+              <div className="min-w-0 flex-1">
+                {vista === "mapa" ? (
+                  <PlantMap
+                    areas={filteredAreas}
+                    selectedId={selectedId}
+                    onSelect={handleSelect}
+                  />
+                ) : (
+                  <TableView
+                    areas={filteredAreas}
+                    selectedId={selectedId}
+                    onSelect={handleSelect}
+                  />
+                )}
+              </div>
+
+              {/* Right — sticky details panel (desktop only) */}
+              <div className="no-print hidden w-80 shrink-0 lg:sticky lg:top-[65px] lg:block lg:self-start">
+                <DetailsPanel area={selectedArea} />
+              </div>
+            </div>
+          </>
+        )}
       </main>
+
+      {/* ── Mobile bottom Sheet ── */}
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent
+          side="bottom"
+          className="no-print h-[72vh] overflow-y-auto rounded-t-2xl lg:hidden"
+        >
+          <SheetHeader className="pb-2">
+            <SheetTitle className="text-left text-sm text-muted-foreground">
+              Detalle del área
+            </SheetTitle>
+          </SheetHeader>
+          <DetailsPanel area={selectedArea} />
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
