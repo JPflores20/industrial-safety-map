@@ -187,9 +187,9 @@ function Index() {
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-3">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-400">
-              <ShieldAlert className="h-5 w-5" />
-              <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-green-400 ring-2 ring-background" />
+            <div className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-border bg-card shadow-sm">
+              <img src="/logos/BREWMAN.jpeg" alt="BREWMAN" className="h-full w-full object-cover rounded-lg" />
+              <span className="absolute -right-1.5 -top-1.5 h-4 w-4 rounded-full bg-green-400 ring-2 ring-background" />
             </div>
             <div>
               <h1 className="text-base font-bold leading-tight tracking-tight">

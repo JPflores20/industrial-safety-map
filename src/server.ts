@@ -43,7 +43,17 @@ export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
       const handler = await getServerEntry();
-      const response = await handler.fetch(request, env, ctx);
+      let response = await handler.fetch(request, env, ctx);
+      
+      // Force 404 to 200 so Nitro successfully prerenders and we get our index.html
+      if (response.status === 404) {
+        response = new Response(response.body, {
+          status: 200,
+          statusText: "OK",
+          headers: response.headers
+        });
+      }
+      
       return await normalizeCatastrophicSsrResponse(response);
     } catch (error) {
       console.error(error);

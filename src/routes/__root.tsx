@@ -10,11 +10,6 @@ import {
 import { useEffect, type ReactNode } from "react";
 import { Toaster } from "sonner";
 import { useState } from "react";
-import { createRoot } from "react-dom/client";
-
-if (typeof window !== "undefined") {
-  (window as any).myCreateRoot = createRoot;
-}
 
 function ClientToaster() {
   const [mounted, setMounted] = useState(false);
@@ -90,6 +85,22 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 
 function AuthWrapper() {
   const { currentUser, loading } = useAuth();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // During SSR and initial hydration, we must match the server tree exactly
+  // The server renders the Outlet so TanStack Router can crawl the routes and avoid 404s
+  if (!mounted || typeof window === "undefined") {
+    return (
+      <>
+        <Outlet />
+        <ClientToaster />
+      </>
+    );
+  }
 
   if (loading) {
     return (
