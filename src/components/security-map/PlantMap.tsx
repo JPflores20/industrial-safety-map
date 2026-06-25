@@ -18,6 +18,7 @@ import {
   TEAM_META,
   DEFAULT_TEAM_META,
   ESTADO_META,
+  getAreaStatus,
   type Area,
 } from "./data";
 import { TeamLogo } from "./TeamLogo";
@@ -65,23 +66,29 @@ const LEVEL_META = {
   },
 } as const;
 
-// ─── Compliance mini bar ───────────────────────────────────────────────────────
-function MiniComplianceBar({ value, estado }: { value: number; estado: Area["estado"] }) {
-  const color =
-    estado === "vencido"
-      ? "bg-red-400"
-      : estado === "pendiente"
-        ? "bg-amber-400"
-        : "bg-emerald-400";
-  return (
-    <div className="h-0.5 w-full overflow-hidden rounded-full bg-border/30">
-      <div
-        className={`h-full rounded-full ${color}`}
-        style={{ width: `${value}%` }}
-      />
-    </div>
-  );
-}
+const CARD_META = {
+  "al-dia": {
+    selectedRing: "focus-visible:ring-emerald-400",
+    selectedClasses: "border-emerald-400 bg-emerald-400/10 shadow-[0_0_22px_-4px_rgba(52,211,153,0.55)]",
+    unselectedClasses: "border-border bg-surface-zone hover:border-emerald-400/40 hover:shadow-[0_0_15px_-4px_rgba(52,211,153,0.3)]",
+    iconSelected: "bg-emerald-400/20 text-emerald-400",
+    iconUnselected: "bg-background/40 text-emerald-400/70",
+  },
+  "pendiente": {
+    selectedRing: "focus-visible:ring-amber-400",
+    selectedClasses: "border-amber-400 bg-amber-400/10 shadow-[0_0_22px_-4px_rgba(251,191,36,0.55)]",
+    unselectedClasses: "border-border bg-surface-zone hover:border-amber-400/40 hover:shadow-[0_0_15px_-4px_rgba(251,191,36,0.3)]",
+    iconSelected: "bg-amber-400/20 text-amber-400",
+    iconUnselected: "bg-background/40 text-amber-400/70",
+  },
+  "retrasado": {
+    selectedRing: "focus-visible:ring-red-400",
+    selectedClasses: "border-red-400 bg-red-400/10 shadow-[0_0_22px_-4px_rgba(248,113,113,0.55)]",
+    unselectedClasses: "border-border bg-surface-zone hover:border-red-400/40 hover:shadow-[0_0_15px_-4px_rgba(248,113,113,0.3)]",
+    iconSelected: "bg-red-400/20 text-red-400",
+    iconUnselected: "bg-background/40 text-red-400/70",
+  },
+};
 
 export function PlantMap({ areas, selectedId, onSelect }: Props) {
   // Group areas by team
@@ -132,7 +139,9 @@ export function PlantMap({ areas, selectedId, onSelect }: Props) {
                   const isSelected = selectedId === area.id;
                   const maxLevel = getMaxRiskLevel(area.riesgos);
                   const levelMeta = LEVEL_META[maxLevel];
-                  const estadoMeta = ESTADO_META[area.estado];
+                  const estado = getAreaStatus(area.ultimaInspeccion);
+                  const estadoMeta = ESTADO_META[estado];
+                  const cardStyles = CARD_META[estado];
 
                   return (
                     <button
@@ -142,38 +151,24 @@ export function PlantMap({ areas, selectedId, onSelect }: Props) {
                       aria-pressed={isSelected}
                       onClick={() => onSelect(area.id)}
                       style={{ animationDelay: `${delay}ms` }}
-                      className={`area-card-enter group relative flex flex-col gap-2 rounded-xl border-2 p-3 text-left transition-all duration-200 hover:scale-[1.02] focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 ${
+                      className={`area-card-enter group relative flex flex-col gap-2 rounded-xl border-2 p-3 text-left transition-all duration-200 hover:scale-[1.02] focus:outline-none focus-visible:ring-2 ${cardStyles.selectedRing} ${
                         isSelected
-                          ? "border-amber-400 bg-amber-400/10 shadow-[0_0_22px_-4px_rgba(251,191,36,0.55)]"
-                          : "border-border bg-surface-zone hover:border-foreground/25 hover:shadow-md"
+                          ? cardStyles.selectedClasses
+                          : cardStyles.unselectedClasses
                       }`}
                     >
-                      {/* Risk semáforo — top-right */}
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span
-                            className={`absolute right-2.5 top-2.5 flex h-4 w-4 items-center justify-center rounded-full border ${levelMeta.ring}`}
-                          >
-                            <span
-                              className={`h-1.5 w-1.5 rounded-full ${levelMeta.dot}`}
-                            />
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent side="left" className="text-xs">
-                          {levelMeta.label}
-                        </TooltipContent>
-                      </Tooltip>
+
 
                       {/* Icon row */}
                       <div className="flex items-start gap-2">
                         <div
-                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors ${
+                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors overflow-hidden ${
                             isSelected
-                              ? "bg-amber-400/20 text-amber-400"
-                              : "bg-background/40 text-muted-foreground"
+                              ? cardStyles.iconSelected
+                              : cardStyles.iconUnselected
                           }`}
                         >
-                          <Factory className="h-4 w-4" />
+                          <TeamLogo team={area.equipo} className="h-full w-full object-cover" />
                         </div>
                         <span
                           className={`rounded-full border px-1.5 py-0.5 text-[10px] font-bold leading-tight ${
@@ -235,14 +230,10 @@ export function PlantMap({ areas, selectedId, onSelect }: Props) {
                               </span>
                             </TooltipTrigger>
                             <TooltipContent side="bottom" className="text-xs">
-                              Última insp.: {area.ultimaInspeccion}
+                              Última insp.: {area.ultimaInspeccion || "Sin inspección"}
                             </TooltipContent>
                           </Tooltip>
-                          <span className="text-[9px] text-muted-foreground">
-                            {area.cumplimiento}%
-                          </span>
                         </div>
-                        <MiniComplianceBar value={area.cumplimiento} estado={area.estado} />
                       </div>
 
                       {/* Selected glow line */}

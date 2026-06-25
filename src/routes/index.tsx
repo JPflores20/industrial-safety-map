@@ -1,5 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { collection, query as firestoreQuery, onSnapshot } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import {
   Settings,
   ShieldAlert,
@@ -21,6 +23,7 @@ import { RankingView } from "@/components/security-map/RankingView";
 import {
   areas,
   getRiskCategory,
+  getAreaStatus,
   type RiskCategory,
   type EstadoArea,
 } from "@/components/security-map/data";
@@ -49,7 +52,7 @@ export const Route = createFileRoute("/")({
   }),
   head: () => ({
     meta: [
-      { title: "Mapa Interactivo de Seguridad Industrial" },
+      { title: "PRO ONE VIEW" },
       {
         name: "description",
         content:
@@ -57,7 +60,7 @@ export const Route = createFileRoute("/")({
       },
       {
         property: "og:title",
-        content: "Mapa Interactivo de Seguridad Industrial",
+        content: "PRO ONE VIEW",
       },
       {
         property: "og:description",
@@ -90,10 +93,51 @@ function Index() {
   );
   const [activeResponsable, setActiveResponsable] = useState("");
   const [activeEstados, setActiveEstados] = useState<Set<EstadoArea>>(new Set());
+  const [activeTerritorios, setActiveTerritorios] = useState<Set<string>>(new Set());
+
+  // Firebase dynamic areas
+  const [dynamicAreas, setDynamicAreas] = useState(areas);
+
+  useEffect(() => {
+    const q = firestoreQuery(collection(db, "evaluaciones"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      // Find the most recent evaluation for each area
+      const latestByArea = new Map<string, Date>();
+      
+      snapshot.docs.forEach((doc) => {
+        const data = doc.data();
+        const fecha = data.fecha?.toDate();
+        if (fecha && data.areaId) {
+          const currentLatest = latestByArea.get(data.areaId);
+          if (!currentLatest || fecha > currentLatest) {
+            latestByArea.set(data.areaId, fecha);
+          }
+        }
+      });
+      
+      // Update areas
+      setDynamicAreas(areas.map(a => {
+        const latest = latestByArea.get(a.id);
+        if (latest) {
+          // Ajustamos la fecha localmente para evitar desfases horarios UTC
+          const localDate = new Date(latest.getTime() - latest.getTimezoneOffset() * 60000);
+          return {
+            ...a,
+            ultimaInspeccion: localDate.toISOString().split('T')[0]
+          };
+        }
+        return {
+          ...a,
+          ultimaInspeccion: ""
+        };
+      }));
+    });
+    return () => unsubscribe();
+  }, []);
 
   // ── Computed filtered areas ──
   const filteredAreas = useMemo(() => {
-    let result = areas;
+    let result = dynamicAreas;
     if (query.trim()) {
       const q = query.toLowerCase();
       result = result.filter(
@@ -101,6 +145,7 @@ function Index() {
           a.nombre.toLowerCase().includes(q) ||
           a.responsable.toLowerCase().includes(q) ||
           a.equipo.toLowerCase().includes(q) ||
+          a.territorio.toLowerCase().includes(q) ||
           a.riesgos.some((r) => r.toLowerCase().includes(q))
       );
     }
@@ -117,12 +162,16 @@ function Index() {
     }
     // ── Estado filter (Mejora 1) ──
     if (activeEstados.size > 0) {
-      result = result.filter((a) => activeEstados.has(a.estado));
+      result = result.filter((a) => activeEstados.has(getAreaStatus(a.ultimaInspeccion)));
+    }
+    // ── Territorio filter ──
+    if (activeTerritorios.size > 0) {
+      result = result.filter((a) => activeTerritorios.has(a.territorio));
     }
     return result;
-  }, [query, activeEquipos, activeCategorias, activeResponsable, activeEstados]);
+  }, [query, activeEquipos, activeCategorias, activeResponsable, activeEstados, activeTerritorios, dynamicAreas]);
 
-  const selectedArea = areas.find((a) => a.id === selectedId) ?? null;
+  const selectedArea = dynamicAreas.find((a) => a.id === selectedId) ?? null;
 
   // ── Handlers ──
   function handleSelect(id: string) {
@@ -159,12 +208,21 @@ function Index() {
     });
   }
 
+  function handleToggleTerritorio(territorio: string) {
+    setActiveTerritorios((prev) => {
+      const next = new Set(prev);
+      next.has(territorio) ? next.delete(territorio) : next.add(territorio);
+      return next;
+    });
+  }
+
   function clearAll() {
     setQuery("");
     setActiveEquipos(new Set());
     setActiveCategorias(new Set());
     setActiveResponsable("");
     setActiveEstados(new Set());
+    setActiveTerritorios(new Set());
   }
 
   function handleExportCSV() {
@@ -192,8 +250,8 @@ function Index() {
               <span className="absolute -right-1.5 -top-1.5 h-4 w-4 rounded-full bg-green-400 ring-2 ring-background" />
             </div>
             <div>
-              <h1 className="text-base font-bold leading-tight tracking-tight">
-                Mapa de Seguridad Industrial
+              <h1 className="hidden sm:block text-lg font-black tracking-tight text-foreground">
+                PRO ONE VIEW
               </h1>
               <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Activity className="h-3 w-3 text-green-400" />
@@ -331,6 +389,8 @@ function Index() {
               onResponsableChange={setActiveResponsable}
               activeEstados={activeEstados}
               onToggleEstado={handleToggleEstado}
+              activeTerritorios={activeTerritorios}
+              onToggleTerritorio={handleToggleTerritorio}
               totalVisible={filteredAreas.length}
               onClearAll={clearAll}
             />

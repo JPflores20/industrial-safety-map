@@ -18,7 +18,8 @@ import {
 } from "./data";
 
 const ALL_TEAMS = [...new Set(areas.map((a) => a.equipo))];
-const ALL_ESTADOS: EstadoArea[] = ["al-dia", "pendiente", "vencido"];
+const ALL_ESTADOS: EstadoArea[] = ["al-dia", "pendiente", "retrasado"];
+const ALL_TERRITORIOS = [...new Set(areas.map((a) => a.territorio))].sort();
 
 interface Props {
   query: string;
@@ -31,6 +32,8 @@ interface Props {
   onResponsableChange: (r: string) => void;
   activeEstados: Set<EstadoArea>;
   onToggleEstado: (e: EstadoArea) => void;
+  activeTerritorios: Set<string>;
+  onToggleTerritorio: (t: string) => void;
   totalVisible: number;
   onClearAll: () => void;
 }
@@ -46,6 +49,8 @@ export function FilterBar({
   onResponsableChange,
   activeEstados,
   onToggleEstado,
+  activeTerritorios,
+  onToggleTerritorio,
   totalVisible,
   onClearAll,
 }: Props) {
@@ -54,7 +59,8 @@ export function FilterBar({
     activeEquipos.size > 0 ||
     activeCategorias.size > 0 ||
     !!activeResponsable ||
-    activeEstados.size > 0;
+    activeEstados.size > 0 ||
+    activeTerritorios.size > 0;
 
   const responsables = useMemo(
     () => [...new Set(areas.map((a) => a.responsable))].sort(),
@@ -177,6 +183,31 @@ export function FilterBar({
             >
               <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
               {meta.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── Row 5: Territorio chips ── */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <SlidersHorizontal className="h-3 w-3" />
+          Territorio:
+        </span>
+        {ALL_TERRITORIOS.map((territorio) => {
+          const active = activeTerritorios.has(territorio);
+          return (
+            <button
+              key={territorio}
+              type="button"
+              onClick={() => onToggleTerritorio(territorio)}
+              className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-all duration-150 ${
+                active
+                  ? "border-amber-400 bg-amber-400/10 text-amber-400"
+                  : "border-border text-muted-foreground hover:border-foreground/30"
+              }`}
+            >
+              {territorio}
             </button>
           );
         })}

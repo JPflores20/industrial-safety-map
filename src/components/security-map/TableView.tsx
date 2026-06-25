@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
-import { getMaxRiskLevel, ESTADO_META, type Area } from "./data";
+import { getMaxRiskLevel, ESTADO_META, getAreaStatus, type Area } from "./data";
 import { Avatar } from "./Avatar";
 
-type SortKey = "nombre" | "equipo" | "responsable" | "riesgos" | "nivel" | "cumplimiento";
+type SortKey = "nombre" | "equipo" | "responsable" | "riesgos" | "nivel" | "estado";
 type SortDir = "asc" | "desc";
 
 interface Props {
@@ -25,22 +25,7 @@ const LEVEL_STYLES: Record<string, string> = {
   warning: "border-amber-500/30 bg-amber-500/10 text-amber-300",
 };
 
-function MiniBar({ value, estado }: { value: number; estado: Area["estado"] }) {
-  const color =
-    estado === "vencido"
-      ? "bg-red-400"
-      : estado === "pendiente"
-        ? "bg-amber-400"
-        : "bg-emerald-400";
-  return (
-    <div className="flex items-center gap-2">
-      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-border/40">
-        <div className={`h-full rounded-full ${color}`} style={{ width: `${value}%` }} />
-      </div>
-      <span className="text-[10px] text-muted-foreground">{value}%</span>
-    </div>
-  );
-}
+
 
 export function TableView({ areas, selectedId, onSelect }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>("nombre");
@@ -66,7 +51,7 @@ export function TableView({ areas, selectedId, onSelect }: Props) {
       cmp =
         LEVEL_ORDER[getMaxRiskLevel(a.riesgos)] -
         LEVEL_ORDER[getMaxRiskLevel(b.riesgos)];
-    else if (sortKey === "cumplimiento") cmp = a.cumplimiento - b.cumplimiento;
+    else if (sortKey === "estado") cmp = getAreaStatus(a.ultimaInspeccion).localeCompare(getAreaStatus(b.ultimaInspeccion));
     return sortDir === "asc" ? cmp : -cmp;
   });
 
@@ -76,7 +61,7 @@ export function TableView({ areas, selectedId, onSelect }: Props) {
     { key: "responsable", label: "Responsable" },
     { key: "riesgos", label: "Riesgos" },
     { key: "nivel", label: "Nivel" },
-    { key: "cumplimiento", label: "Cumplimiento" },
+    { key: "estado", label: "Estado" },
   ];
 
   function SortIcon({ col }: { col: SortKey }) {
@@ -113,7 +98,8 @@ export function TableView({ areas, selectedId, onSelect }: Props) {
             {sorted.map((area, i) => {
               const isSelected = selectedId === area.id;
               const level = getMaxRiskLevel(area.riesgos);
-              const estadoMeta = ESTADO_META[area.estado];
+              const estado = getAreaStatus(area.ultimaInspeccion);
+              const estadoMeta = ESTADO_META[estado];
               return (
                 <tr
                   key={area.id}
@@ -169,7 +155,6 @@ export function TableView({ areas, selectedId, onSelect }: Props) {
                         <span className={`h-1 w-1 rounded-full ${estadoMeta.dot}`} />
                         {estadoMeta.label}
                       </span>
-                      <MiniBar value={area.cumplimiento} estado={area.estado} />
                     </div>
                   </td>
                 </tr>

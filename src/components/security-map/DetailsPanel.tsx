@@ -18,7 +18,7 @@ import {
   FileText,
   ClipboardCheck,
 } from "lucide-react";
-import { classifyRisk, type Area, type RiskLevel, ESTADO_META } from "./data";
+import { classifyRisk, type Area, type RiskLevel, ESTADO_META, getAreaStatus } from "./data";
 import { getRiskControl } from "./riskControls";
 import { ChecklistForm, type EvaluationData } from "./ChecklistForm";
 import { EvaluationHistory } from "./EvaluationHistory";
@@ -147,20 +147,6 @@ function RiskItem({ riesgo }: { riesgo: string }) {
   );
 }
 
-// ─── Compliance progress bar ───────────────────────────────────────────────────
-function ComplianceBar({ value }: { value: number }) {
-  const color =
-    value >= 85 ? "bg-emerald-400" : value >= 65 ? "bg-amber-400" : "bg-red-400";
-  return (
-    <div className="h-1.5 w-full overflow-hidden rounded-full bg-border/40">
-      <div
-        className={`h-full rounded-full transition-all duration-700 ${color}`}
-        style={{ width: `${value}%` }}
-      />
-    </div>
-  );
-}
-
 export function DetailsPanel({ area }: Props) {
   const [showChecklist, setShowChecklist] = useState(false);
   const [activeTab, setActiveTab] = useState<"detalles" | "historial">("detalles");
@@ -193,6 +179,8 @@ export function DetailsPanel({ area }: Props) {
       });
     }
   };
+
+  const estado = area ? getAreaStatus(area.ultimaInspeccion) : null;
 
   return (
     <aside
@@ -241,47 +229,42 @@ export function DetailsPanel({ area }: Props) {
 
           {/* ── Compliance / Inspection status (Mejora 1) ── */}
           <div className="rounded-xl border border-border bg-background/30 p-3 space-y-3">
-            {/* Estado badge + % */}
+            {/* Estado badge */}
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                {area.estado === "al-dia" ? (
+                {estado === "al-dia" ? (
                   <CalendarCheck className="h-4 w-4 text-emerald-400" />
                 ) : (
-                  <CalendarX className={`h-4 w-4 ${area.estado === "vencido" ? "text-red-400" : "text-amber-400"}`} />
+                  <CalendarX className={`h-4 w-4 ${estado === "retrasado" ? "text-red-400" : "text-amber-400"}`} />
                 )}
                 <span className="text-xs font-semibold text-foreground">Inspección</span>
               </div>
-              <span
-                className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${ESTADO_META[area.estado].border} ${ESTADO_META[area.estado].bg} ${ESTADO_META[area.estado].color}`}
-              >
-                {ESTADO_META[area.estado].label}
-              </span>
+              {estado && (
+                <span
+                  className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${ESTADO_META[estado].border} ${ESTADO_META[estado].bg} ${ESTADO_META[estado].color}`}
+                >
+                  {ESTADO_META[estado].label}
+                </span>
+              )}
             </div>
 
-            {/* Cumplimiento bar */}
-            <div>
-              <div className="mb-1.5 flex items-center justify-between text-[10px] text-muted-foreground">
-                <span>Cumplimiento</span>
-                <span className="font-bold text-foreground">{area.cumplimiento}%</span>
-              </div>
-              <ComplianceBar value={area.cumplimiento} />
-            </div>
+
 
             {/* Dates */}
             <div className="grid grid-cols-2 gap-2 text-[10px]">
               <div>
                 <p className="text-muted-foreground">Última inspección</p>
-                <p className="font-semibold text-foreground">
-                  {new Date(area.ultimaInspeccion + "T12:00:00").toLocaleDateString("es-MX", {
-                    day: "2-digit",
-                    month: "short",
+                <span className="text-foreground">
+                  {area.ultimaInspeccion ? new Date(area.ultimaInspeccion + "T12:00:00").toLocaleDateString("es-MX", {
                     year: "numeric",
-                  })}
-                </p>
+                    month: "long",
+                    day: "numeric",
+                  }) : "Sin inspección"}
+                </span>
               </div>
               <div>
                 <p className="text-muted-foreground">Próxima inspección</p>
-                <p className={`font-semibold ${area.estado === "vencido" ? "text-red-400" : "text-foreground"}`}>
+                <p className={`font-semibold ${estado === "retrasado" ? "text-red-400" : "text-foreground"}`}>
                   {new Date(area.proximaInspeccion + "T12:00:00").toLocaleDateString("es-MX", {
                     day: "2-digit",
                     month: "short",

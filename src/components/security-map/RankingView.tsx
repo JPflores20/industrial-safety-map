@@ -2,13 +2,14 @@ import { useState, useEffect } from "react";
 import { collection, query, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Loader2, Target, Trophy } from "lucide-react";
-import { areas } from "./data";
+import { areas, getAreaStatus, ESTADO_META, type EstadoArea } from "./data";
 import { Avatar } from "./Avatar";
 import { TeamLogo } from "./TeamLogo";
 
 interface EvalRecord {
   areaId: string;
   cumplimiento: number;
+  fecha: Date | null;
 }
 
 interface AreaRanking {
@@ -18,6 +19,7 @@ interface AreaRanking {
   responsable: string;
   promedio: number;
   totalEvaluaciones: number;
+  estado: EstadoArea;
 }
 
 const teamLeaders: Record<string, string> = {
@@ -41,16 +43,23 @@ export function RankingView() {
       const records: EvalRecord[] = snapshot.docs.map(doc => ({
         areaId: doc.data().areaId,
         cumplimiento: doc.data().cumplimiento || 0,
+        fecha: doc.data().fecha?.toDate() || null,
       }));
 
       // Agrupar y calcular promedios
-      const areaStats = new Map<string, { total: number, count: number }>();
+      const areaStats = new Map<string, { total: number, count: number, latest: Date | null }>();
       
       records.forEach(record => {
-        const current = areaStats.get(record.areaId) || { total: 0, count: 0 };
+        const current = areaStats.get(record.areaId) || { total: 0, count: 0, latest: null };
+        let newLatest = current.latest;
+        if (record.fecha && (!newLatest || record.fecha > newLatest)) {
+          newLatest = record.fecha;
+        }
+        
         areaStats.set(record.areaId, {
           total: current.total + record.cumplimiento,
-          count: current.count + 1
+          count: current.count + 1,
+          latest: newLatest
         });
       });
 
@@ -59,20 +68,33 @@ export function RankingView() {
       
       areas.forEach(area => {
         const stats = areaStats.get(area.id);
-        if (stats && stats.count > 0) {
-          rankingData.push({
-            id: area.id,
-            nombre: area.nombre,
-            equipo: area.equipo,
-            responsable: area.responsable,
-            promedio: Math.round(stats.total / stats.count),
-            totalEvaluaciones: stats.count
-          });
+        
+        let estadoDate = "";
+        if (stats && stats.latest) {
+          const latest = stats.latest;
+          const localDate = new Date(latest.getTime() - latest.getTimezoneOffset() * 60000);
+          estadoDate = localDate.toISOString().split('T')[0];
         }
+        
+        rankingData.push({
+          id: area.id,
+          nombre: area.nombre,
+          equipo: area.equipo,
+          responsable: area.responsable,
+          promedio: stats && stats.count > 0 ? Math.round(stats.total / stats.count) : 0,
+          totalEvaluaciones: stats ? stats.count : 0,
+          estado: getAreaStatus(estadoDate),
+        });
       });
 
-      // Ordenar por promedio de mayor a menor
-      rankingData.sort((a, b) => b.promedio - a.promedio);
+      // Ordenar por estado (Al Día > Pendiente > Retrasado) y luego por promedio
+      const estadoWeight = { "al-dia": 3, "pendiente": 2, "retrasado": 1 };
+      rankingData.sort((a, b) => {
+        if (estadoWeight[a.estado] !== estadoWeight[b.estado]) {
+          return estadoWeight[b.estado] - estadoWeight[a.estado];
+        }
+        return b.promedio - a.promedio;
+      });
 
       setRankings(rankingData);
       setLoading(false);
@@ -141,8 +163,8 @@ export function RankingView() {
           </thead>
           <tbody className="divide-y divide-border">
             {rankings.map((area, index) => {
-              const isRed = area.promedio < 85;
-              const isTop = index < 3;
+              const isRed = area.estado === "retrasado";
+              const isTop = index < 3 && area.estado === "al-dia";
               
               const teamLeader = teamLeaders[area.equipo] || "LÍDER ASIGNADO";
 
@@ -223,10 +245,19 @@ export function RankingView() {
                   <td className="px-6 py-6 text-center align-middle">
                     <div className="flex flex-col items-center justify-center">
                       <div className="w-24 overflow-hidden rounded border border-border shadow-sm">
-                        <div className={`py-1 text-[10px] font-bold text-white uppercase ${isRed ? 'bg-red-600' : isTop ? 'bg-amber-500' : 'bg-[#1e3a8a]'}`}>
-                          PROMEDIO
+                        <div className={`py-1 text-[10px] font-bold text-white uppercase ${
+                          area.estado === "al-dia" ? "bg-emerald-500" :
+                          area.estado === "pendiente" ? "bg-amber-500" :
+                          "bg-red-500"
+                        }`}>
+                          {ESTADO_META[area.estado]?.label || "SIN EVALUAR"}
                         </div>
-                        <div className="bg-white dark:bg-card py-2 text-xl font-black text-[#1e3a8a] dark:text-foreground">
+                        <div className={`bg-white dark:bg-card py-2 text-xl font-black ${
+                          area.estado === "al-dia" ? "text-emerald-600 dark:text-emerald-400" :
+                          area.estado === "pendiente" ? "text-amber-600 dark:text-amber-400" :
+                          area.estado === "retrasado" ? "text-red-600 dark:text-red-400" :
+                          "text-amber-600 dark:text-amber-400"
+                        }`}>
                           {area.promedio}%
                         </div>
                       </div>
