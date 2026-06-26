@@ -209,7 +209,7 @@ export function ChecklistForm({ area, onClose, onSave }: Props) {
                   return (
                     <div key={item} className="flex flex-col gap-2 rounded-xl border border-border bg-background/40 p-3 transition-colors hover:border-border/80">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <span className="text-sm text-foreground flex-1 leading-snug">{item}</span>
+                        <span className="text-sm text-foreground flex-1 leading-snug text-justify pr-2">{item}</span>
                         <div className="flex items-center gap-2 shrink-0">
                           <button
                             type="button"

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import confetti from "canvas-confetti";
 import { collection, query, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Loader2, Target, Trophy } from "lucide-react";
+import { Loader2, Target, Trophy, Crown } from "lucide-react";
 import { areas, getAreaStatus, ESTADO_META, type EstadoArea } from "./data";
 import { Avatar } from "./Avatar";
 import { TeamLogo } from "./TeamLogo";
@@ -31,6 +31,7 @@ const teamLeaders: Record<string, string> = {
   "CUCHILLAS": "JUAN SALAZAR BANDA",
   "MOSTO-BOYS": "OBED CALVILLO RAMIREZ"
 };
+
 
 export function RankingView() {
   const [rankings, setRankings] = useState<AreaRanking[]>([]);
@@ -161,97 +162,131 @@ export function RankingView() {
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[1400px] mx-auto space-y-8 pb-12">
       
       {/* HEADER SECTION (Best Area, Brewman Logo, Worst Area) */}
-      <div className="flex flex-col md:flex-row gap-4 mb-6 relative">
+      <div className="flex flex-col xl:flex-row gap-4 mb-6 relative bg-slate-950/50 p-4 rounded-2xl border border-border/50 shadow-inner">
         {/* LEFT: BEST AREA */}
         {bestArea ? (
-          <div className="flex-1 rounded-[18px] bg-emerald-50/50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/30 p-5 flex flex-col justify-between overflow-hidden relative group">
+          <div className="flex-1 rounded-[1.25rem] bg-[#0a1120] border-2 border-emerald-500/20 p-4 relative overflow-hidden group shadow-lg">
             <canvas ref={confettiCanvasRef} className="absolute inset-0 w-full h-full pointer-events-none z-10" />
-            <div className="flex items-start justify-between relative z-20">
-              <div>
-                <h3 className="text-sm font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-1">
-                  Mejor Área
-                </h3>
-                <div className="text-xl font-black text-foreground">
-                  {bestArea.nombre}
-                </div>
-              </div>
-              <div className="h-10 w-10 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-inner">
-                <Trophy className="h-5 w-5" />
-              </div>
-            </div>
             
-            <div className="mt-4 flex items-end justify-between relative z-20">
-              <div className="flex items-center gap-2">
-                <TeamLogo team={bestArea.equipo} className="h-6 w-6 rounded-md shadow-sm" />
-                <span className="text-xs font-bold text-muted-foreground">{bestArea.equipo}</span>
+            <div className="flex justify-center items-center gap-2 mb-3 relative z-20">
+              <Trophy className="h-3.5 w-3.5 text-emerald-400" />
+              <span className="text-emerald-400 font-bold text-[10px] uppercase tracking-[0.2em]">Mejor Área</span>
+            </div>
+
+            <div className="flex items-center justify-between relative z-20">
+              {/* Left: Team Logo Box */}
+              <div className="flex-shrink-0 w-[5.5rem] h-[5.5rem] rounded-xl bg-emerald-950/30 flex items-center justify-center border border-emerald-500/10 shadow-inner">
+                <TeamLogo team={bestArea.equipo} className="w-16 h-16 object-contain opacity-100" />
               </div>
-              <div className="text-3xl font-black text-emerald-500">
-                {bestArea.promedio}%
+
+              {/* Center: Info & Progress */}
+              <div className="flex-1 px-5 flex flex-col items-center">
+                <h2 className="text-white font-black text-lg text-center uppercase leading-tight mb-2 tracking-wide">
+                  {bestArea.nombre}
+                </h2>
+                <div className="w-full flex items-center gap-3 mb-1.5">
+                  <div className="flex-1 h-1.5 bg-emerald-950/50 rounded-full overflow-hidden shadow-inner">
+                    <div className="h-full bg-emerald-400 rounded-full shadow-[0_0_8px_rgba(52,211,153,0.5)]" style={{ width: `${bestArea.promedio}%` }} />
+                  </div>
+                  <span className="text-emerald-400 font-bold text-xs">{bestArea.promedio.toFixed(2)}%</span>
+                </div>
+                <span className="text-emerald-500/60 text-[9px] font-bold uppercase tracking-wider">
+                  Equipo: {bestArea.equipo}
+                </span>
+              </div>
+
+              {/* Right: Avatar */}
+              <div className="flex-shrink-0 flex flex-col items-center w-24">
+                <Avatar name={bestArea.responsable} className="w-11 h-11 rounded-full border border-emerald-500/30 mb-1.5 shadow-sm bg-emerald-950 text-emerald-200" />
+                <span className="text-emerald-500/60 text-[8px] font-bold uppercase tracking-wider mb-0.5">DUEÑO</span>
+                <span className="text-white text-[9px] font-bold uppercase text-center leading-[1.1] max-w-[80px]">
+                  {bestArea.responsable}
+                </span>
               </div>
             </div>
           </div>
         ) : (
-          <div className="flex-1 rounded-[18px] bg-slate-50 dark:bg-card border border-border p-5 flex items-center justify-center">
+          <div className="flex-1 rounded-[1.25rem] bg-[#0a1120] border-2 border-border/20 p-5 flex items-center justify-center">
             <span className="text-muted-foreground text-sm font-medium">Sin datos</span>
           </div>
         )}
 
         {/* MIDDLE: BREWMAN LOGO & MONTH FILTER */}
-        <div className="flex-1 flex flex-col items-center justify-center p-4">
-          <div className="h-24 w-24 rounded-2xl flex items-center justify-center shadow-md mb-3 overflow-hidden border-2 border-[#1e3a8a]/20">
+        <div className="flex flex-col items-center justify-center px-2 shrink-0 py-2">
+          <div className="h-20 w-20 rounded-2xl flex items-center justify-center shadow-lg mb-3 overflow-hidden border border-white/5 bg-black">
             <img src="/logos/BREWMAN.jpeg" alt="Brewman" className="h-full w-full object-cover" />
+          </div>
+          <div className="text-center mb-2">
+            <div className="text-slate-400/70 text-[9px] font-bold uppercase tracking-[0.15em] mb-0.5">Tabla de Posiciones</div>
+            <div className="text-blue-400 font-black text-[11px] uppercase tracking-[0.1em]">Vista Global</div>
           </div>
           <select 
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
-            className="bg-white dark:bg-slate-900 border border-border text-sm font-bold rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-[#1e3a8a] outline-none shadow-sm"
+            className="bg-slate-900/50 border border-border/40 text-slate-300 text-[9px] font-bold uppercase tracking-wider rounded-md px-2 py-1 focus:ring-1 focus:ring-blue-500/50 outline-none w-full text-center hover:bg-slate-900 transition-colors cursor-pointer"
           >
-            <option value="all">TODOS LOS MESES</option>
-            <option value="1">ENERO</option>
-            <option value="2">FEBRERO</option>
-            <option value="3">MARZO</option>
-            <option value="4">ABRIL</option>
-            <option value="5">MAYO</option>
-            <option value="6">JUNIO</option>
-            <option value="7">JULIO</option>
-            <option value="8">AGOSTO</option>
-            <option value="9">SEPTIEMBRE</option>
-            <option value="10">OCTUBRE</option>
-            <option value="11">NOVIEMBRE</option>
-            <option value="12">DICIEMBRE</option>
+            <option className="bg-slate-900" value="all">TODOS LOS MESES</option>
+            <option className="bg-slate-900" value="1">ENERO</option>
+            <option className="bg-slate-900" value="2">FEBRERO</option>
+            <option className="bg-slate-900" value="3">MARZO</option>
+            <option className="bg-slate-900" value="4">ABRIL</option>
+            <option className="bg-slate-900" value="5">MAYO</option>
+            <option className="bg-slate-900" value="6">JUNIO</option>
+            <option className="bg-slate-900" value="7">JULIO</option>
+            <option className="bg-slate-900" value="8">AGOSTO</option>
+            <option className="bg-slate-900" value="9">SEPTIEMBRE</option>
+            <option className="bg-slate-900" value="10">OCTUBRE</option>
+            <option className="bg-slate-900" value="11">NOVIEMBRE</option>
+            <option className="bg-slate-900" value="12">DICIEMBRE</option>
           </select>
         </div>
 
         {/* RIGHT: WORST AREA (AREA FOCO) */}
         {worstArea ? (
-          <div className="flex-1 rounded-[18px] bg-red-50/50 dark:bg-red-900/10 border border-red-100 dark:border-red-800/30 p-5 flex flex-col justify-between overflow-hidden relative group">
+          <div className="flex-1 rounded-[1.25rem] bg-[#0a1120] border-2 border-red-500/30 p-4 relative overflow-visible group">
             {/* PULSING EFFECT */}
-            <div className="absolute inset-0 bg-red-500/10 dark:bg-red-500/5 animate-pulse z-0 pointer-events-none" />
+            <div className="absolute inset-0 rounded-[1.25rem] ring-2 ring-red-500 shadow-[0_0_20px_rgba(239,68,68,0.6)] animate-pulse pointer-events-none z-0" />
+            <div className="absolute inset-0 rounded-[1.25rem] bg-red-500/10 blur-md animate-pulse z-0 pointer-events-none" />
             
-            <div className="flex items-start justify-between relative z-10">
-              <div>
-                <h3 className="text-sm font-bold text-red-600 dark:text-red-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                  <Target className="h-4 w-4" />
-                  Área Foco
-                </h3>
-                <div className="text-xl font-black text-foreground">
-                  {worstArea.nombre}
-                </div>
-              </div>
+            <div className="flex justify-center items-center gap-2 mb-3 relative z-10">
+              <Target className="h-3.5 w-3.5 text-red-400" />
+              <span className="text-red-400 font-bold text-[10px] uppercase tracking-[0.2em]">Área Foco</span>
             </div>
-            
-            <div className="mt-4 flex items-end justify-between relative z-10">
-              <div className="flex items-center gap-2">
-                <TeamLogo team={worstArea.equipo} className="h-6 w-6 rounded-md shadow-sm" />
-                <span className="text-xs font-bold text-muted-foreground">{worstArea.equipo}</span>
+
+            <div className="flex items-center justify-between relative z-10">
+              {/* Left: Avatar */}
+              <div className="flex-shrink-0 flex flex-col items-center w-24">
+                <Avatar name={worstArea.responsable} className="w-11 h-11 rounded-full border border-red-500/30 mb-1.5 shadow-sm bg-red-950 text-red-200" />
+                <span className="text-red-500/60 text-[8px] font-bold uppercase tracking-wider mb-0.5">DUEÑO</span>
+                <span className="text-white text-[9px] font-bold uppercase text-center leading-[1.1] max-w-[80px]">
+                  {worstArea.responsable}
+                </span>
               </div>
-              <div className="text-3xl font-black text-red-500">
-                {worstArea.promedio}%
+
+              {/* Center: Info & Progress */}
+              <div className="flex-1 px-5 flex flex-col items-center">
+                <h2 className="text-white font-black text-lg text-center uppercase leading-tight mb-2 tracking-wide">
+                  {worstArea.nombre}
+                </h2>
+                <div className="w-full flex items-center gap-3 mb-1.5">
+                  <span className="text-red-400 font-bold text-xs">{worstArea.promedio.toFixed(2)}%</span>
+                  <div className="flex-1 h-1.5 bg-red-950/50 rounded-full overflow-hidden shadow-inner">
+                    <div className="h-full bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.5)]" style={{ width: `${worstArea.promedio}%` }} />
+                  </div>
+                </div>
+                <span className="text-red-500/60 text-[9px] font-bold uppercase tracking-wider">
+                  Equipo: {worstArea.equipo}
+                </span>
+              </div>
+
+              {/* Right: Team Logo Box */}
+              <div className="flex-shrink-0 w-[5.5rem] h-[5.5rem] rounded-xl bg-red-950/30 flex items-center justify-center border border-red-500/10 shadow-inner">
+                <TeamLogo team={worstArea.equipo} className="w-16 h-16 object-contain opacity-100" />
               </div>
             </div>
           </div>
         ) : (
-          <div className="flex-1 rounded-[18px] bg-slate-50 dark:bg-card border border-border p-5 flex items-center justify-center">
+          <div className="flex-1 rounded-[1.25rem] bg-[#0a1120] border-2 border-border/20 p-5 flex items-center justify-center">
             <span className="text-muted-foreground text-sm font-medium">Sin datos</span>
           </div>
         )}
@@ -264,7 +299,7 @@ export function RankingView() {
             <tr>
               <th className="px-4 py-4 text-center border-r border-white/20 w-16">#</th>
               <th className="px-6 py-4 border-r border-white/20 w-56">Área / Zona</th>
-              <th className="px-6 py-4 border-r border-white/20 w-64">Responsable del área</th>
+              <th className="px-6 py-4 border-r border-white/20 w-64">DUEÑOS</th>
               <th className="px-4 py-4 text-center border-r border-white/20 w-40">Equipo Autónomo</th>
               <th className="px-6 py-4 border-r border-white/20 w-64">Líder de equipo autónomo</th>
               <th className="px-4 py-4 text-center border-r border-white/20 w-32">Inspecciones</th>
@@ -274,7 +309,7 @@ export function RankingView() {
           <tbody className="divide-y divide-border">
             {rankings.map((area, index) => {
               const isRed = area.estado === "retrasado";
-              const isTop = index < 3 && area.estado === "al-dia";
+              const isTop = index === 0 && area.estado === "al-dia";
               
               const teamLeader = teamLeaders[area.equipo] || "LÍDER ASIGNADO";
 
@@ -285,9 +320,12 @@ export function RankingView() {
                 >
                   {/* Posición */}
                   <td className="px-4 py-6 text-center border-r border-border align-middle">
-                    <span className={`text-base font-black ${isTop ? 'text-amber-500' : 'text-slate-400'}`}>
-                      {index + 1}
-                    </span>
+                    <div className="flex flex-col items-center justify-center">
+                      {isTop && <Crown className="h-4 w-4 text-amber-500 mb-1" />}
+                      <span className={`text-base font-black ${isTop ? 'text-amber-500' : 'text-slate-400'}`}>
+                        {index + 1}
+                      </span>
+                    </div>
                   </td>
 
                   {/* Área / Zona */}
@@ -311,7 +349,7 @@ export function RankingView() {
                           {area.responsable}
                         </span>
                         <div className="inline-flex items-center px-1.5 py-0.5 rounded-sm bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400 text-[10px] font-bold border border-teal-200 dark:border-teal-800 uppercase mt-1 w-fit">
-                          LÍDER ASIGNADO
+                          DUEÑO
                         </div>
                       </div>
                     </div>

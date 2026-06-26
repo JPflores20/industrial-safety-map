@@ -304,58 +304,6 @@ function Index() {
               </button>
             </div>
 
-            {/* Export dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  id="export-btn"
-                  type="button"
-                  className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  Exportar
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44">
-                <DropdownMenuItem
-                  id="export-csv-item"
-                  onClick={handleExportCSV}
-                  className="gap-2 text-xs"
-                >
-                  <FileDown className="h-3.5 w-3.5" />
-                  Exportar CSV
-                  {filteredAreas.length < areas.length && (
-                    <span className="ml-auto text-[10px] text-muted-foreground">
-                      {filteredAreas.length} filas
-                    </span>
-                  )}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  id="export-pdf-item"
-                  onClick={handleExportPDF}
-                  className="gap-2 text-xs"
-                >
-                  <FileDown className="h-3.5 w-3.5" />
-                  Imprimir / PDF
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Theme toggle */}
-            <button
-              id="theme-toggle-btn"
-              type="button"
-              aria-label="Cambiar tema"
-              onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
-              className="flex h-9 w-9 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-            >
-              {theme === "dark" ? (
-                <Sun className="h-4 w-4" />
-              ) : (
-                <Moon className="h-4 w-4" />
-              )}
-            </button>
-
             <button
               id="settings-btn"
               type="button"

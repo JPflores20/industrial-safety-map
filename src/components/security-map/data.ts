@@ -94,7 +94,7 @@ export const ESTADO_META: Record<EstadoArea, {
   chipInactive: string;
 }> = {
   "al-dia": {
-    label: "Al día",
+    label: "Evaluado",
     color: "text-emerald-400",
     bg: "bg-emerald-500/10",
     border: "border-emerald-500/40",
