@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef } from "react";
-import confetti from "canvas-confetti";
+import { useState, useEffect } from "react";
 import { collection, query, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Loader2, Target, Trophy } from "lucide-react";
@@ -35,8 +34,6 @@ const teamLeaders: Record<string, string> = {
 export function RankingView() {
   const [rankings, setRankings] = useState<AreaRanking[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedMonth, setSelectedMonth] = useState("all");
-  const confettiCanvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -47,11 +44,7 @@ export function RankingView() {
         areaId: doc.data().areaId,
         cumplimiento: doc.data().cumplimiento || 0,
         fecha: doc.data().fecha?.toDate() || null,
-      })).filter(record => {
-        if (selectedMonth === "all") return true;
-        if (!record.fecha) return false;
-        return (record.fecha.getMonth() + 1).toString() === selectedMonth;
-      });
+      }));
 
       // Agrupar y calcular promedios
       const areaStats = new Map<string, { total: number, count: number, latest: Date | null }>();
@@ -111,28 +104,7 @@ export function RankingView() {
     });
 
     return () => unsubscribe();
-  }, [selectedMonth]);
-
-  const bestArea = rankings.length > 0 && rankings[0].promedio > 0 ? rankings[0] : null;
-  const worstArea = rankings.length > 0 ? rankings[rankings.length - 1] : null;
-
-  useEffect(() => {
-    if (bestArea && confettiCanvasRef.current) {
-      const myConfetti = confetti.create(confettiCanvasRef.current, {
-        resize: true,
-        useWorker: false
-      });
-      const interval = setInterval(() => {
-        myConfetti({
-          particleCount: 50,
-          spread: 60,
-          origin: { y: 0.8 },
-          colors: ['#FFD700', '#FFA500', '#FF8C00']
-        });
-      }, 2000);
-      return () => clearInterval(interval);
-    }
-  }, [bestArea]);
+  }, []);
 
   if (loading) {
     return (
@@ -160,101 +132,19 @@ export function RankingView() {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[1400px] mx-auto space-y-8 pb-12">
       
-      {/* HEADER SECTION (Best Area, Brewman Logo, Worst Area) */}
-      <div className="flex flex-col md:flex-row gap-4 mb-6 relative">
-        {/* LEFT: BEST AREA */}
-        {bestArea ? (
-          <div className="flex-1 rounded-[18px] bg-emerald-50/50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/30 p-5 flex flex-col justify-between overflow-hidden relative group">
-            <canvas ref={confettiCanvasRef} className="absolute inset-0 w-full h-full pointer-events-none z-10" />
-            <div className="flex items-start justify-between relative z-20">
-              <div>
-                <h3 className="text-sm font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-1">
-                  Mejor Área
-                </h3>
-                <div className="text-xl font-black text-foreground">
-                  {bestArea.nombre}
-                </div>
-              </div>
-              <div className="h-10 w-10 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-inner">
-                <Trophy className="h-5 w-5" />
-              </div>
-            </div>
-            
-            <div className="mt-4 flex items-end justify-between relative z-20">
-              <div className="flex items-center gap-2">
-                <TeamLogo team={bestArea.equipo} className="h-6 w-6 rounded-md shadow-sm" />
-                <span className="text-xs font-bold text-muted-foreground">{bestArea.equipo}</span>
-              </div>
-              <div className="text-3xl font-black text-emerald-500">
-                {bestArea.promedio}%
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="flex-1 rounded-[18px] bg-slate-50 dark:bg-card border border-border p-5 flex items-center justify-center">
-            <span className="text-muted-foreground text-sm font-medium">Sin datos</span>
-          </div>
-        )}
-
-        {/* MIDDLE: BREWMAN LOGO & MONTH FILTER */}
-        <div className="flex-1 flex flex-col items-center justify-center p-4">
-          <div className="h-24 w-24 rounded-2xl flex items-center justify-center shadow-md mb-3 overflow-hidden border-2 border-[#1e3a8a]/20">
-            <img src="/logos/BREWMAN.jpeg" alt="Brewman" className="h-full w-full object-cover" />
-          </div>
-          <select 
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            className="bg-white dark:bg-slate-900 border border-border text-sm font-bold rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-[#1e3a8a] outline-none shadow-sm"
-          >
-            <option value="all">TODOS LOS MESES</option>
-            <option value="1">ENERO</option>
-            <option value="2">FEBRERO</option>
-            <option value="3">MARZO</option>
-            <option value="4">ABRIL</option>
-            <option value="5">MAYO</option>
-            <option value="6">JUNIO</option>
-            <option value="7">JULIO</option>
-            <option value="8">AGOSTO</option>
-            <option value="9">SEPTIEMBRE</option>
-            <option value="10">OCTUBRE</option>
-            <option value="11">NOVIEMBRE</option>
-            <option value="12">DICIEMBRE</option>
-          </select>
+      {/* HEADER SECTION */}
+      <div className="flex items-center gap-4 bg-white dark:bg-card p-6 rounded-xl shadow-sm border border-border">
+        <div className="flex items-center justify-center h-14 w-14 rounded-full bg-[#1e3a8a]/10 text-[#1e3a8a] dark:text-blue-400">
+          <Trophy className="h-7 w-7" />
         </div>
-
-        {/* RIGHT: WORST AREA (AREA FOCO) */}
-        {worstArea ? (
-          <div className="flex-1 rounded-[18px] bg-red-50/50 dark:bg-red-900/10 border border-red-100 dark:border-red-800/30 p-5 flex flex-col justify-between overflow-hidden relative group">
-            {/* PULSING EFFECT */}
-            <div className="absolute inset-0 bg-red-500/10 dark:bg-red-500/5 animate-pulse z-0 pointer-events-none" />
-            
-            <div className="flex items-start justify-between relative z-10">
-              <div>
-                <h3 className="text-sm font-bold text-red-600 dark:text-red-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                  <Target className="h-4 w-4" />
-                  Área Foco
-                </h3>
-                <div className="text-xl font-black text-foreground">
-                  {worstArea.nombre}
-                </div>
-              </div>
-            </div>
-            
-            <div className="mt-4 flex items-end justify-between relative z-10">
-              <div className="flex items-center gap-2">
-                <TeamLogo team={worstArea.equipo} className="h-6 w-6 rounded-md shadow-sm" />
-                <span className="text-xs font-bold text-muted-foreground">{worstArea.equipo}</span>
-              </div>
-              <div className="text-3xl font-black text-red-500">
-                {worstArea.promedio}%
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="flex-1 rounded-[18px] bg-slate-50 dark:bg-card border border-border p-5 flex items-center justify-center">
-            <span className="text-muted-foreground text-sm font-medium">Sin datos</span>
-          </div>
-        )}
+        <div>
+          <h1 className="text-2xl font-extrabold text-[#1e3a8a] dark:text-blue-400 uppercase tracking-tight">
+            Tabla de Posiciones de Seguridad
+          </h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Ranking general basado en inspecciones y evaluaciones de las áreas
+          </p>
+        </div>
       </div>
 
       {/* TABLE VIEW */}

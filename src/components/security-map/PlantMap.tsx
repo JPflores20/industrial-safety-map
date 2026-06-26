@@ -6,6 +6,7 @@ import {
   ShieldAlert,
   AlertTriangle,
   Thermometer,
+  Crown,
 } from "lucide-react";
 import {
   Tooltip,
@@ -91,6 +92,11 @@ const CARD_META = {
 };
 
 export function PlantMap({ areas, selectedId, onSelect }: Props) {
+  // ── Calculate min and max scores for highlighting ──
+  const validScores = areas.map(a => a.ultimaCalificacion).filter((val): val is number => val !== undefined);
+  const maxScore = validScores.length > 0 ? Math.max(...validScores) : null;
+  const minScore = validScores.length > 0 ? Math.min(...validScores) : null;
+
   // Group areas by team
   const grouped = new Map<string, Area[]>();
   for (const area of areas) {
@@ -143,6 +149,16 @@ export function PlantMap({ areas, selectedId, onSelect }: Props) {
                   const estadoMeta = ESTADO_META[estado];
                   const cardStyles = CARD_META[estado];
 
+                  const isBest = maxScore !== null && area.ultimaCalificacion === maxScore;
+                  const isWorst = minScore !== null && area.ultimaCalificacion === minScore;
+                  
+                  let specialClasses = "";
+                  if (isBest) {
+                    specialClasses = "ring-2 ring-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.6)] border-yellow-300 dark:border-yellow-600";
+                  } else if (isWorst) {
+                    specialClasses = "animate-[pulse_2s_ease-in-out_infinite] shadow-[0_0_15px_rgba(239,68,68,0.8)] ring-2 ring-red-500 border-red-400 dark:border-red-600";
+                  }
+
                   return (
                     <button
                       key={area.id}
@@ -155,8 +171,14 @@ export function PlantMap({ areas, selectedId, onSelect }: Props) {
                         isSelected
                           ? cardStyles.selectedClasses
                           : cardStyles.unselectedClasses
-                      }`}
+                      } ${specialClasses}`}
                     >
+                      {/* Golden Crown Badge */}
+                      {isBest && (
+                        <div className="absolute -top-3 -right-3 h-8 w-8 rounded-full bg-gradient-to-tr from-yellow-500 to-yellow-300 text-yellow-950 flex items-center justify-center shadow-lg border border-yellow-200 z-10 drop-shadow-md">
+                          <Crown className="h-4 w-4 fill-current" />
+                        </div>
+                      )}
 
 
                       {/* Icon row */}
@@ -168,7 +190,7 @@ export function PlantMap({ areas, selectedId, onSelect }: Props) {
                               : cardStyles.iconUnselected
                           }`}
                         >
-                          <TeamLogo team={area.equipo} className="h-full w-full object-cover" />
+                          <TeamLogo team={area.equipo} disableDialog={true} className="h-full w-full object-cover" />
                         </div>
                         <span
                           className={`rounded-full border px-1.5 py-0.5 text-[10px] font-bold leading-tight ${
@@ -233,6 +255,18 @@ export function PlantMap({ areas, selectedId, onSelect }: Props) {
                               Última insp.: {area.ultimaInspeccion || "Sin inspección"}
                             </TooltipContent>
                           </Tooltip>
+                          {area.ultimaCalificacion !== undefined && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="font-mono text-xs font-bold text-foreground bg-background/50 border px-2 py-0.5 rounded-md shadow-sm">
+                                  {area.ultimaCalificacion}%
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent side="bottom" className="text-xs">
+                                Calificación de la última evaluación
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
                         </div>
                       </div>
 

@@ -2,13 +2,27 @@ import { useMemo } from "react";
 import { Users } from "lucide-react";
 import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "@/components/ui/dialog";
 
-// @ts-ignore
-const logosGlob = import.meta.glob('/public/logos/*.(png|jpeg|jpg)', { eager: true, query: '?url', import: 'default' });
+const KNOWN_LOGOS = [
+  "BREWMAN.jpeg",
+  "CUCHILLAS.png",
+  "ELABORACION.png",
+  "LOS ANDAMOS CON TODO.png",
+  "LOS BRAVOS DEL FRIO.png",
+  "LOS BRONCOS.png",
+  "LOS CAZADORES DEL AMARGOR.png",
+  "LOS FUERTES DEL FRIO.png",
+  "LOS NAHUALES.png",
+  "LOS PANCHITOS.png",
+  "MASH-RAINBOW.png",
+  "MOSTO-BOYS.png",
+  "MUNICH.png",
+  "REYES DE LA MEZCLA.png"
+];
 
-const logosList = Object.entries(logosGlob).map(([path, url]) => {
-  const fileName = path.split('/').pop()?.replace(/\.(png|jpeg|jpg)$/, '') || '';
+const logosList = KNOWN_LOGOS.map((file) => {
+  const fileName = file.replace(/\.(png|jpeg|jpg)$/, '');
   const normalized = fileName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  return { fileName, normalized, url: url as string };
+  return { fileName, normalized, url: `/logos/${file}` };
 });
 
 export function getTeamLogoUrl(teamName: string): string | null {
@@ -23,7 +37,7 @@ export function getTeamLogoUrl(teamName: string): string | null {
   return null;
 }
 
-export function TeamLogo({ team, className = "h-8 w-8" }: { team: string; className?: string }) {
+export function TeamLogo({ team, className = "h-8 w-8", disableDialog = false }: { team: string; className?: string; disableDialog?: boolean }) {
   const url = useMemo(() => getTeamLogoUrl(team), [team]);
   const initials = team.substring(0, 2).toUpperCase();
 
@@ -35,19 +49,27 @@ export function TeamLogo({ team, className = "h-8 w-8" }: { team: string; classN
     );
   }
 
+  const imgElement = (
+    <img
+      src={url}
+      alt={`Logo de ${team}`}
+      className={`h-full w-full rounded-lg object-contain bg-white/5 border border-border/50 p-0.5 transition-transform ${disableDialog ? '' : 'cursor-zoom-in hover:scale-105'}`}
+      onError={(e) => {
+        e.currentTarget.style.display = 'none';
+        e.currentTarget.parentElement?.classList.add('fallback-logo');
+      }}
+    />
+  );
+
+  if (disableDialog) {
+    return <div className={`shrink-0 rounded-lg overflow-hidden ${className}`}>{imgElement}</div>;
+  }
+
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <button type="button" className={`shrink-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 ${className}`}>
-          <img
-            src={url}
-            alt={`Logo de ${team}`}
-            className="h-full w-full rounded-lg object-contain bg-white/5 border border-border/50 p-0.5 cursor-zoom-in transition-transform hover:scale-105"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-              e.currentTarget.parentElement?.classList.add('fallback-logo');
-            }}
-          />
+        <button type="button" className={`shrink-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 overflow-hidden ${className}`}>
+          {imgElement}
         </button>
       </DialogTrigger>
       <DialogContent className="max-w-md bg-transparent border-none shadow-none p-0 flex flex-col justify-center items-center gap-4">
