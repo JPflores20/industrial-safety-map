@@ -1,23 +1,29 @@
+// ─── Importaciones de React, Iconos y Datos ─────────────────────────────────
 import { useState } from "react";
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { getMaxRiskLevel, ESTADO_META, getAreaStatus, type Area } from "./data";
 import { Avatar } from "./Avatar";
 
+// Definición de las claves por las que se puede ordenar la tabla y la dirección
 type SortKey = "nombre" | "equipo" | "responsable" | "riesgos" | "nivel" | "estado";
 type SortDir = "asc" | "desc";
 
+// Propiedades que recibe el componente TableView
 interface Props {
-  areas: Area[];
-  selectedId: string | null;
-  onSelect: (id: string) => void;
+  areas: Area[]; // Lista de áreas a mostrar en la tabla (filtradas previamente)
+  selectedId: string | null; // ID del área actualmente seleccionada
+  onSelect: (id: string) => void; // Función para manejar la selección de un área
 }
 
+// ─── Configuración Visual de Niveles de Riesgo ──────────────────────────────
+// Orden numérico de niveles para poder ordenarlos de mayor a menor gravedad
 const LEVEL_ORDER: Record<string, number> = { danger: 3, alert: 2, warning: 1 };
 const LEVEL_LABELS: Record<string, string> = {
   danger: "Peligro",
   alert: "Alerta",
   warning: "Precaución",
 };
+// Clases de Tailwind CSS para colorear los niveles de riesgo
 const LEVEL_STYLES: Record<string, string> = {
   danger:
     "border-red-500/30 bg-red-500/10 text-red-300 shadow-[0_0_6px_-2px_rgba(239,68,68,0.4)]",
@@ -27,21 +33,31 @@ const LEVEL_STYLES: Record<string, string> = {
 
 
 
+
+// ─── Componente Principal TableView ─────────────────────────────────────────
+// Muestra una lista tabular de las áreas, permitiendo ordenar por diferentes columnas
 export function TableView({ areas, selectedId, onSelect }: Props) {
+  // Estado local para recordar por qué columna estamos ordenando y en qué dirección
   const [sortKey, setSortKey] = useState<SortKey>("nombre");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
 
+  // Función para manejar el clic en los encabezados de columna
   function handleSort(key: SortKey) {
     if (sortKey === key) {
+      // Si ya estaba ordenada por esta columna, invertir la dirección
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     } else {
+      // Si es una columna nueva, ordenar por ella ascendentemente
       setSortKey(key);
       setSortDir("asc");
     }
   }
 
+
+  // Ordenar el arreglo de áreas antes de renderizar
   const sorted = [...areas].sort((a, b) => {
     let cmp = 0;
+    // Comparaciones según la clave de ordenamiento elegida
     if (sortKey === "nombre") cmp = a.nombre.localeCompare(b.nombre, "es");
     else if (sortKey === "equipo") cmp = a.equipo.localeCompare(b.equipo, "es");
     else if (sortKey === "responsable")
@@ -52,9 +68,13 @@ export function TableView({ areas, selectedId, onSelect }: Props) {
         LEVEL_ORDER[getMaxRiskLevel(a.riesgos)] -
         LEVEL_ORDER[getMaxRiskLevel(b.riesgos)];
     else if (sortKey === "estado") cmp = getAreaStatus(a.ultimaInspeccion).localeCompare(getAreaStatus(b.ultimaInspeccion));
+    
+    // Aplicar la dirección (ascendente/descendente)
     return sortDir === "asc" ? cmp : -cmp;
   });
 
+
+  // Definición de las columnas de la tabla
   const columns: { key: SortKey; label: string }[] = [
     { key: "nombre", label: "Área" },
     { key: "equipo", label: "Equipo" },
@@ -64,15 +84,21 @@ export function TableView({ areas, selectedId, onSelect }: Props) {
     { key: "estado", label: "Estado" },
   ];
 
+
+  // Subcomponente para renderizar el icono de ordenamiento en los encabezados
   function SortIcon({ col }: { col: SortKey }) {
+    // Si la columna actual no está ordenada, mostrar icono inactivo
     if (sortKey !== col)
       return <ArrowUpDown className="h-3 w-3 opacity-30" />;
+    
+    // Si está ordenada, mostrar la flecha en la dirección correspondiente
     return sortDir === "asc" ? (
       <ArrowUp className="h-3 w-3 text-amber-400" />
     ) : (
       <ArrowDown className="h-3 w-3 text-amber-400" />
     );
   }
+
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-surface-plant">
@@ -97,9 +123,10 @@ export function TableView({ areas, selectedId, onSelect }: Props) {
           <tbody>
             {sorted.map((area, i) => {
               const isSelected = selectedId === area.id;
-              const level = getMaxRiskLevel(area.riesgos);
-              const estado = getAreaStatus(area.ultimaInspeccion);
-              const estadoMeta = ESTADO_META[estado];
+              const level = getMaxRiskLevel(area.riesgos); // Calcula el nivel de riesgo más alto
+              const estado = getAreaStatus(area.ultimaInspeccion); // Determina el estado de inspección
+              const estadoMeta = ESTADO_META[estado]; // Obtiene colores y etiquetas del estado
+
               return (
                 <tr
                   key={area.id}
@@ -146,7 +173,7 @@ export function TableView({ areas, selectedId, onSelect }: Props) {
                       {LEVEL_LABELS[level]}
                     </span>
                   </td>
-                  {/* ── Compliance column (Mejora 1) ── */}
+                  {/* ── Columna de Cumplimiento (Estado de inspección) ── */}
                   <td className="px-4 py-3">
                     <div className="flex flex-col gap-1.5">
                       <span
@@ -160,6 +187,7 @@ export function TableView({ areas, selectedId, onSelect }: Props) {
                 </tr>
               );
             })}
+            {/* Mensaje mostrado cuando no hay resultados (Empty state) */}
             {sorted.length === 0 && (
               <tr>
                 <td

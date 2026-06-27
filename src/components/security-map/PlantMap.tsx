@@ -1,3 +1,4 @@
+// ─── Importaciones principales ────────────────────────────────────────────────
 import {
   Factory,
   Zap,
@@ -24,13 +25,15 @@ import {
 } from "./data";
 import { TeamLogo } from "./TeamLogo";
 
+// ─── Interfaz de Propiedades (Props) del componente ──────────────────────────
 interface Props {
   areas: Area[];
   selectedId: string | null;
   onSelect: (id: string) => void;
 }
 
-// ─── Risk icon selector ────────────────────────────────────────────────────────
+// ─── Selector de iconos de riesgo ──────────────────────────────────────────────
+// Devuelve un icono diferente dependiendo de las palabras clave en el string de riesgo
 function RiskIcon({ risk }: { risk: string }) {
   const r = risk.toLowerCase();
   if (/eléctric|electric|tensión|arco/.test(r))
@@ -91,22 +94,28 @@ const CARD_META = {
   },
 };
 
+// ─── Componente Principal PlantMap ─────────────────────────────────────────────
+// Representa un mapa/lista de tarjetas de áreas agrupadas por equipo
 export function PlantMap({ areas, selectedId, onSelect }: Props) {
-  // ── Calculate min and max scores for highlighting ──
+  // ── Calcular puntuaciones mínimas y máximas para destacar ──
+  // Obtenemos solo las calificaciones que son números válidos
   const validScores = areas.map(a => a.ultimaCalificacion).filter((val): val is number => val !== undefined);
+  // Encontramos la puntuación máxima (mejor) y mínima (peor)
   const maxScore = validScores.length > 0 ? Math.max(...validScores) : null;
   const minScore = validScores.length > 0 ? Math.min(...validScores) : null;
 
-  // Group areas by team
+  // ── Agrupar las áreas por equipo ──
   const grouped = new Map<string, Area[]>();
   for (const area of areas) {
     if (!grouped.has(area.equipo)) grouped.set(area.equipo, []);
     grouped.get(area.equipo)!.push(area);
   }
 
-  // Running card index for stagger delays (computed during render, not a hook)
+  // Índice para retrasar la animación de entrada de cada tarjeta ("stagger effect")
+  // Se calcula durante el renderizado, no es un hook.
   let cardIndex = 0;
 
+  // Si no hay áreas después de aplicar los filtros, mostramos un mensaje vacío
   if (grouped.size === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-border bg-surface-plant py-20 text-muted-foreground">
@@ -123,7 +132,7 @@ export function PlantMap({ areas, selectedId, onSelect }: Props) {
           const meta = TEAM_META[equipo] ?? DEFAULT_TEAM_META;
           return (
             <section key={equipo} aria-label={`Equipo ${equipo}`}>
-              {/* Group header */}
+              {/* Encabezado del grupo de áreas (Equipo) */}
               <div
                 className={`mb-3 flex items-center gap-2.5 rounded-lg border px-3 py-2 ${meta.border} bg-surface-plant`}
               >
@@ -138,9 +147,10 @@ export function PlantMap({ areas, selectedId, onSelect }: Props) {
                 </span>
               </div>
 
-              {/* Cards grid */}
+              {/* Cuadrícula de tarjetas de áreas */}
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {teamAreas.map((area) => {
+                  // Calculamos un pequeño retraso (delay) para la animación de entrada
                   const delay = cardIndex++ * 40;
                   const isSelected = selectedId === area.id;
                   const maxLevel = getMaxRiskLevel(area.riesgos);
@@ -152,6 +162,7 @@ export function PlantMap({ areas, selectedId, onSelect }: Props) {
                   const isBest = maxScore !== null && area.ultimaCalificacion === maxScore;
                   const isWorst = minScore !== null && area.ultimaCalificacion === minScore;
                   
+                  // Añadir clases especiales si es la mejor o peor evaluada
                   let specialClasses = "";
                   if (isBest) {
                     specialClasses = "ring-2 ring-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.6)] border-yellow-300 dark:border-yellow-600";
@@ -173,7 +184,7 @@ export function PlantMap({ areas, selectedId, onSelect }: Props) {
                           : cardStyles.unselectedClasses
                       } ${specialClasses}`}
                     >
-                      {/* Golden Crown Badge */}
+                      {/* Medalla/Insignia de Corona Dorada para la mejor área */}
                       {isBest && (
                         <div className="absolute -top-3 -right-3 h-8 w-8 rounded-full bg-gradient-to-tr from-yellow-500 to-yellow-300 text-yellow-950 flex items-center justify-center shadow-lg border border-yellow-200 z-10 drop-shadow-md">
                           <Crown className="h-4 w-4 fill-current" />
@@ -181,7 +192,7 @@ export function PlantMap({ areas, selectedId, onSelect }: Props) {
                       )}
 
 
-                      {/* Icon row */}
+                      {/* Fila de icono del equipo y contador de riesgos */}
                       <div className="flex items-start gap-2">
                         <div
                           className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors overflow-hidden ${
@@ -203,7 +214,7 @@ export function PlantMap({ areas, selectedId, onSelect }: Props) {
                         </span>
                       </div>
 
-                      {/* Area name */}
+                      {/* Nombre del área */}
                       <h3
                         className={`line-clamp-2 pr-5 text-xs font-semibold leading-snug ${
                           isSelected ? "text-amber-100" : "text-foreground"
@@ -212,7 +223,7 @@ export function PlantMap({ areas, selectedId, onSelect }: Props) {
                         {area.nombre}
                       </h3>
 
-                      {/* Risk icons with tooltips */}
+                      {/* Iconos de riesgos con tooltips para mostrar su descripción */}
                       <div className="flex flex-wrap gap-1">
                         {area.riesgos.slice(0, 3).map((r) => (
                           <Tooltip key={r}>
@@ -239,7 +250,7 @@ export function PlantMap({ areas, selectedId, onSelect }: Props) {
                         )}
                       </div>
 
-                      {/* ── Compliance strip (Mejora 1) ── */}
+                      {/* ── Barra inferior: Cumplimiento y Calificación (Mejora 1) ── */}
                       <div className="space-y-1">
                         <div className="flex items-center justify-between">
                           <Tooltip>
@@ -270,7 +281,7 @@ export function PlantMap({ areas, selectedId, onSelect }: Props) {
                         </div>
                       </div>
 
-                      {/* Selected glow line */}
+                      {/* Línea brillante inferior si el área está seleccionada */}
                       {isSelected && (
                         <div className="absolute inset-x-0 bottom-0 h-0.5 rounded-b-xl bg-gradient-to-r from-amber-500 to-yellow-400" />
                       )}

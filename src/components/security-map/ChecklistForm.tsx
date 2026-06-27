@@ -1,3 +1,4 @@
+// ─── Importaciones de React y componentes ────────────────────────────────────
 import { useState } from "react";
 import {
   ClipboardCheck,
@@ -14,19 +15,25 @@ import {
 } from "lucide-react";
 import type { Area } from "./data";
 
+
+// ─── Interfaces de Datos ─────────────────────────────────────────────────────
+// Define la estructura de los datos que se guardan al finalizar la evaluación
 export interface EvaluationData {
-  evaluador: string;
-  cumplimiento: number;
-  respuestas: Record<string, "cumple" | "no-cumple" | "na">;
-  observaciones: Record<string, string>;
+  evaluador: string; // Nombre de la persona que evalúa
+  cumplimiento: number; // Porcentaje final calculado
+  respuestas: Record<string, "cumple" | "no-cumple" | "na">; // Respuestas por cada ítem
+  observaciones: Record<string, string>; // Comentarios adicionales en caso de "no-cumple"
 }
 
+// Propiedades que recibe el componente ChecklistForm
 interface Props {
-  area: Area;
-  onClose: () => void;
-  onSave: (data: EvaluationData) => void;
+  area: Area; // El área específica que se está evaluando
+  onClose: () => void; // Función para cerrar el modal/formulario
+  onSave: (data: EvaluationData) => void; // Función para guardar la evaluación
 }
 
+// ─── Configuración de Categorías del Checklist ───────────────────────────────
+// Contiene las diferentes secciones de la auditoría y sus preguntas correspondientes
 const CATEGORIAS = [
   {
     id: "infra",
@@ -77,7 +84,7 @@ const CATEGORIAS = [
       "Los equipos de limpieza / separacion de granos (tamiz, despedradores, imán, etc.) están en buenas condiciones y se limpian con regularidad.",
       "Existen instalaciones para asegurarse de que el lúpulo y otras materias primas sensibles a la temperatura se almacenan a la temperatura correcta. Temperatura de almacenamiento es controlada y monitoreada a diario. No se utilizan termómetros de mercurio.",
       "Las áreas de almacenamiento de lupulo se mantienen cerradas y aseguradas para evitar la entrada de plagas y el acceso no autorizado",
-      "Los contenedores contenedores/frascos no se vuelven a utilizar para cualquier fin que no sea su propósito original. En caso de necesidad de negocio, se debe tener una evaluación de riesgos documentada y las medidas necesarias implementadas para justificar la reutilizacion con seguridad los contenedores (debera ser aprobado por Calidad)"
+      "Los contenedores contenedores/frascos no se vuelven a utilizar para cualquier fin que no sea su propósito original. En caso de necesidad de negocio, se debe tener una evaluación de riesgos documentada y las medidas necesarias implementadas para justify la reutilizacion con seguridad los contenedores (debera ser aprobado por Calidad)"
     ],
   },
   {
@@ -113,17 +120,21 @@ const CATEGORIAS = [
   },
 ];
 
+
 type Res = "cumple" | "no-cumple" | "na" | null;
 
+// ─── Componente Principal ChecklistForm ──────────────────────────────────────
+// Formulario modal para realizar la evaluación de un área basada en preguntas (ítems)
 export function ChecklistForm({ area, onClose, onSave }: Props) {
   const [evaluador, setEvaluador] = useState("");
   const [respuestas, setRespuestas] = useState<Record<string, Res>>({});
   const [observaciones, setObservaciones] = useState<Record<string, string>>({});
 
+  // Maneja el click en los botones de cumple/no-cumple/na para cada pregunta
   const handleResp = (itemId: string, res: Res) => {
     setRespuestas((prev) => ({ ...prev, [itemId]: res }));
     if (res !== "no-cumple") {
-      // Clear observation if changed from no-cumple
+      // Limpia la observación si la respuesta se cambia a algo distinto de "no-cumple"
       setObservaciones((prev) => {
         const copy = { ...prev };
         delete copy[itemId];
@@ -132,11 +143,12 @@ export function ChecklistForm({ area, onClose, onSave }: Props) {
     }
   };
 
+  // Maneja el input de texto de observaciones
   const handleObs = (itemId: string, text: string) => {
     setObservaciones((prev) => ({ ...prev, [itemId]: text }));
   };
 
-  // Calculate score
+  // ─── Lógica para Calcular Puntuación ───────────────────────────────────────
   let totalApplicable = 0;
   let totalComply = 0;
   
@@ -147,14 +159,18 @@ export function ChecklistForm({ area, onClose, onSave }: Props) {
     } else if (r === "no-cumple") {
       totalApplicable++;
     }
-    // "na" does not count towards totalApplicable
+    // La respuesta "na" (No Aplica) no suma al total aplicable, por lo que no afecta el promedio
   });
 
+  // Calcula el porcentaje sobre 100 de ítems cumplidos
   const percent = totalApplicable > 0 ? Math.round((totalComply / totalApplicable) * 100) : 0;
+  
+  // Valida que el formulario esté listo: Nombre capturado y todos los ítems con una respuesta
   const isComplete = 
     evaluador.trim() !== "" && 
     CATEGORIAS.flatMap(c => c.items).every(item => respuestas[item] !== undefined && respuestas[item] !== null);
 
+  // Retorna un color diferente dependiendo del porcentaje obtenido
   const getStatusColor = (val: number) => {
     if (val >= 85) return "text-emerald-400";
     if (val >= 65) return "text-amber-400";
@@ -165,7 +181,7 @@ export function ChecklistForm({ area, onClose, onSave }: Props) {
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 p-4 sm:p-6 backdrop-blur-sm">
       <div className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
         
-        {/* Header */}
+        {/* ── Encabezado del Modal ── */}
         <div className="flex items-center justify-between border-b border-border bg-surface-zone px-6 py-4">
           <div>
             <div className="flex items-center gap-2">
@@ -185,7 +201,7 @@ export function ChecklistForm({ area, onClose, onSave }: Props) {
           </button>
         </div>
 
-        {/* Evaluador Field */}
+        {/* ── Campo del Nombre del Evaluador ── */}
         <div className="bg-muted/30 border-b border-border px-6 py-4 shrink-0">
           <label className="text-sm font-bold text-foreground mb-2 block">
             Nombre del evaluador <span className="text-red-500">*</span>
@@ -199,7 +215,7 @@ export function ChecklistForm({ area, onClose, onSave }: Props) {
           />
         </div>
 
-        {/* Scrollable Content */}
+        {/* ── Lista de Ítems Desplazable (Scroll) ── */}
         <div className="flex-1 overflow-y-auto min-h-0 p-6 space-y-8">
           {CATEGORIAS.map((cat) => (
             <section key={cat.id} className="space-y-4">
@@ -247,7 +263,7 @@ export function ChecklistForm({ area, onClose, onSave }: Props) {
                         </div>
                       </div>
                       
-                      {/* Observation field when No Cumple */}
+                      {/* Campo de observación que aparece sólo cuando se marca "No Cumple" */}
                       {r === "no-cumple" && (
                         <div className="mt-2 pl-2 border-l-2 border-red-500/30">
                           <input
@@ -267,7 +283,7 @@ export function ChecklistForm({ area, onClose, onSave }: Props) {
           ))}
         </div>
 
-        {/* Footer */}
+        {/* ── Pie del Modal: Puntuación Final y Botón de Guardar ── */}
         <div className="flex items-center justify-between border-t border-border bg-surface-zone px-6 py-4">
           <div className="flex flex-col">
             <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Cumplimiento Calculado</span>

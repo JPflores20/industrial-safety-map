@@ -1,3 +1,4 @@
+// ─── Importaciones Principales ────────────────────────────────────────────────
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
@@ -8,9 +9,10 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
-import { Toaster } from "sonner";
+import { Toaster } from "sonner"; // Librería para notificaciones emergentes (toast)
 import { useState } from "react";
 
+// Componente para renderizar Toaster asegurándose de que sólo corra en el cliente
 function ClientToaster() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -23,6 +25,7 @@ import { LoginScreen } from "@/components/auth/LoginScreen";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
+// Componente para renderizar la página 404 (no encontrada)
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -45,12 +48,15 @@ function NotFoundComponent() {
   );
 }
 
+// Componente global para el manejo de errores (Error Boundary)
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
+    // Reportar errores a Lovable
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
+
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -83,6 +89,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   );
 }
 
+// Wrapper de autenticación: Protege la aplicación y exige inicio de sesión
 function AuthWrapper() {
   const { currentUser, loading } = useAuth();
   const [mounted, setMounted] = useState(false);
@@ -91,9 +98,10 @@ function AuthWrapper() {
     setMounted(true);
   }, []);
 
-  // During SSR and initial hydration, we must match the server tree exactly
-  // The server renders the Outlet so TanStack Router can crawl the routes and avoid 404s
+  // Durante el renderizado del lado del servidor (SSR) y la hidratación inicial,
+  // debemos mantener el árbol exacto. Se renderiza el Outlet para evitar errores 404.
   if (!mounted || typeof window === "undefined") {
+
     return (
       <>
         <Outlet />
@@ -102,6 +110,7 @@ function AuthWrapper() {
     );
   }
 
+  // Muestra un indicador de carga mientras se verifica la sesión en Firebase
   if (loading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -110,6 +119,7 @@ function AuthWrapper() {
     );
   }
 
+  // Si no hay usuario autenticado, renderiza la pantalla de login
   if (!currentUser) {
     return (
       <>
@@ -127,6 +137,7 @@ function AuthWrapper() {
   );
 }
 
+// Componente Root donde se envuelve toda la App con los proveedores
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
@@ -139,12 +150,14 @@ function RootComponent() {
   );
 }
 
+// Cascarón HTML principal donde se inyectan los scripts y metadatos
 function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <head>
         <HeadContent />
       </head>
+
       <body>
         <div id="root">{children}</div>
         <Scripts />
@@ -153,11 +166,13 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+// Configuración de la ruta raíz principal usando TanStack Router
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
+
       { title: "PRP ONE VIEW" },
       { name: "description", content: "Lovable Generated Project" },
       { name: "author", content: "Lovable" },

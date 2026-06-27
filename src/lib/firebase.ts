@@ -13,16 +13,18 @@ const firebaseConfig = {
   measurementId: "G-7TRZDXFD6V"
 };
 
-// Initialize Firebase
+// ─── Inicialización de Firebase ───
+// Inicializa la aplicación principal de Firebase usando la configuración
 const app = initializeApp(firebaseConfig);
 
-// Initialize Analytics (only works in browser environments)
+// ─── Inicialización de Google Analytics ───
+// Analytics solo se puede inicializar si estamos corriendo en el navegador (client-side)
 export const analytics = typeof window !== "undefined" ? getAnalytics(app) : null;
 
-// Initialize Firestore (Database)
+// ─── Inicialización de Firestore (Base de datos en tiempo real) ───
 export const db = getFirestore(app);
 
-// Initialize Auth (Authentication)
+// ─── Inicialización de Authentication (Sistema de logueo) ───
 export const auth = getAuth(app);
 
 export default app;

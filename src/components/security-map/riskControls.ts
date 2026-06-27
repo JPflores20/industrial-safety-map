@@ -1,16 +1,20 @@
-// ─── Risk Controls Map — Mejora 3 ────────────────────────────────────────────
+// ─── Control de Riesgos Industriales ──────────────────────────────────────────
 // Mapa de riesgo → EPP requerido + medidas de control + norma/permiso aplicable
-// Basado en el documento "Riesgos por area.pptx"
+// Sirve para sugerir automáticamente qué protecciones usar basándose en texto de riesgo.
 
+// Interfaz que define la estructura del control de un riesgo
 export interface RiskControl {
-  epp: { icono: string; label: string }[];
-  medidas: string[];
-  norma?: string;
-  permiso?: string;
+  epp: { icono: string; label: string }[]; // Elementos de equipo de protección personal
+  medidas: string[]; // Instrucciones y medidas de control a seguir
+  norma?: string; // Norma oficial mexicana o internacional aplicable
+  permiso?: string; // Nombre del permiso especial de trabajo requerido
 }
 
-// Match key is a lowercase regex fragment used against the risk string
+// ─── Base de Datos de Controles de Riesgo ──────────────────────────────────
+// Cada elemento tiene una expresión regular (`match`) para asociar palabras
+// clave (ej. "eléctrico", "altura") con sus respectivos controles.
 export const RISK_CONTROLS: { match: RegExp; control: RiskControl }[] = [
+
   {
     match: /alta tensión|alto voltaje/,
     control: {
@@ -321,6 +325,10 @@ export const RISK_CONTROLS: { match: RegExp; control: RiskControl }[] = [
   },
 ];
 
+// ─── Función Helper: Obtener el Control de Riesgo ────────────────────────────
+// Recibe un string describiendo el riesgo (ej. "Trabajo en alturas") y retorna
+// el objeto RiskControl aplicable comparando con las expresiones regulares.
+// Si no hay coincidencia, retorna null.
 export function getRiskControl(riesgo: string): RiskControl | null {
   const r = riesgo.toLowerCase();
   const match = RISK_CONTROLS.find((rc) => rc.match.test(r));

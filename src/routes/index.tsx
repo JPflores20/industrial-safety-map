@@ -1,7 +1,9 @@
+// ─── Importaciones ────────────────────────────────────────────────────────────
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useMemo, useEffect } from "react";
 import { collection, query as firestoreQuery, onSnapshot } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { db } from "@/lib/firebase"; // Cliente de Firebase
+
 import {
   Settings,
   ShieldAlert,
@@ -41,8 +43,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-// ─── Route with URL search params ─────────────────────────────────────────────
+// ─── Ruta y Validación de Búsqueda ────────────────────────────────────────────
+// Define la ruta base '/' y cómo maneja los parámetros de la URL (querystring)
 export const Route = createFileRoute("/")({
+  // Tipado y validación de los parámetros de búsqueda en la URL
   validateSearch: (
     search: Record<string, unknown>
   ): { area?: string; vista?: "mapa" | "tabla" | "ranking" } => ({
@@ -72,21 +76,24 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-// ─── Main component ────────────────────────────────────────────────────────────
+// ─── Componente Principal de la Vista Principal ────────────────────────────────
 function Index() {
+  // Extrae la búsqueda inicial de la URL (qué área y vista seleccionar)
   const { area: initialArea, vista: initialVista } = Route.useSearch();
   const navigate = useNavigate({ from: "/" });
 
-  // UI state
+  // ─── Estado Local (UI) ───
   const [selectedId, setSelectedId] = useState<string | null>(
     initialArea ?? null
   );
+  // Controla si mostramos el mapa, la tabla o el ranking
   const [vista, setVista] = useState<"mapa" | "tabla" | "ranking">(initialVista ?? "mapa");
   const [theme, setTheme] = useState<"dark" | "light">("dark");
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false); // Modal lateral para móviles
 
-  // Filter state
+  // ─── Estado de Filtros ───
   const [query, setQuery] = useState("");
+
   const [activeEquipos, setActiveEquipos] = useState<Set<string>>(new Set());
   const [activeCategorias, setActiveCategorias] = useState<Set<RiskCategory>>(
     new Set()
@@ -95,14 +102,16 @@ function Index() {
   const [activeEstados, setActiveEstados] = useState<Set<EstadoArea>>(new Set());
   const [activeTerritorios, setActiveTerritorios] = useState<Set<string>>(new Set());
 
-  // Firebase dynamic areas
+  // ─── Áreas Dinámicas (Desde Firebase) ───
   const [dynamicAreas, setDynamicAreas] = useState(areas);
 
+  // Suscripción a Firebase para mantener las fechas de inspección actualizadas en tiempo real
   useEffect(() => {
     const q = firestoreQuery(collection(db, "evaluaciones"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      // Find the most recent evaluation for each area
+      // Encontrar la evaluación más reciente para cada área
       const latestByArea = new Map<string, Date>();
+
       
       snapshot.docs.forEach((doc) => {
         const data = doc.data();
@@ -135,7 +144,8 @@ function Index() {
     return () => unsubscribe();
   }, []);
 
-  // ── Computed filtered areas ──
+  // ─── Filtrado de Áreas Computado ───
+  // Calcula qué áreas mostrar de acuerdo a la barra de búsqueda y filtros seleccionados
   const filteredAreas = useMemo(() => {
     let result = dynamicAreas;
     if (query.trim()) {
@@ -171,19 +181,24 @@ function Index() {
     return result;
   }, [query, activeEquipos, activeCategorias, activeResponsable, activeEstados, activeTerritorios, dynamicAreas]);
 
+  // Área seleccionada actualmente
   const selectedArea = dynamicAreas.find((a) => a.id === selectedId) ?? null;
 
-  // ── Handlers ──
+  // ─── Manejadores de Eventos (Handlers) ───
+  
+  // Al seleccionar un área, actualizar URL y UI
   function handleSelect(id: string) {
     setSelectedId(id);
     navigate({ search: (prev) => ({ ...prev, area: id }), resetScroll: false });
   }
 
+  // Al cambiar la vista (Mapa/Tabla/Ranking)
   function handleVistaChange(v: "mapa" | "tabla" | "ranking") {
     setVista(v);
     navigate({ search: (prev) => ({ ...prev, vista: v }), resetScroll: false });
   }
 
+  // Funciones para encender/apagar (Toggle) los diferentes filtros
   function handleToggleEquipo(equipo: string) {
     setActiveEquipos((prev) => {
       const next = new Set(prev);
@@ -216,6 +231,7 @@ function Index() {
     });
   }
 
+  // Limpiar todos los filtros a su estado inicial
   function clearAll() {
     setQuery("");
     setActiveEquipos(new Set());
@@ -225,6 +241,7 @@ function Index() {
     setActiveTerritorios(new Set());
   }
 
+  // Maneja la exportación a CSV
   function handleExportCSV() {
     exportCSV(filteredAreas);
     toast.success("CSV exportado", {
@@ -240,10 +257,10 @@ function Index() {
 
   return (
     <div className={`${theme} min-h-screen bg-background text-foreground`}>
-      {/* ── Sticky header ── */}
+      {/* ── Barra Superior Fija (Sticky header) ── */}
       <header className="sticky top-0 z-20 border-b border-border bg-card/60 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-3">
-          {/* Logo */}
+          {/* ── Logotipo y Título ── */}
           <div className="flex items-center gap-3">
             <div className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-border bg-card shadow-sm">
               <img src="/logos/BREWMAN.jpeg" alt="BREWMAN" className="h-full w-full object-cover rounded-lg" />
@@ -260,9 +277,9 @@ function Index() {
             </div>
           </div>
 
-          {/* Actions */}
+          {/* ── Botones de Acción (Vistas y Configuración) ── */}
           <div className="flex items-center gap-2">
-            {/* Vista toggle */}
+            {/* ── Selector de Vista (Mapa/Tabla/Ranking) ── */}
             <div className="flex items-center rounded-lg border border-border bg-surface-zone p-0.5">
               <button
                 id="vista-mapa-btn"
@@ -316,16 +333,17 @@ function Index() {
         </div>
       </header>
 
-      {/* ── Main layout ── */}
+      {/* ── Contenedor Principal (Main Layout) ── */}
       <main className="mx-auto max-w-7xl space-y-4 px-6 py-6">
+        {/* Renderizado condicional según la vista actual */}
         {vista === "ranking" ? (
           <RankingView />
         ) : (
           <>
-            {/* Stats dashboard (collapsible) */}
+            {/* ── Panel de Estadísticas Colapsable ── */}
             <StatsPanel />
 
-            {/* Filters */}
+            {/* ── Barra de Filtros ── */}
             <FilterBar
               query={query}
               onQueryChange={setQuery}
@@ -343,9 +361,9 @@ function Index() {
               onClearAll={clearAll}
             />
 
-            {/* Two-column layout */}
+            {/* ── Diseño de dos columnas (Mapa/Tabla + Detalles) ── */}
             <div className="flex gap-6 lg:items-start">
-              {/* Left — scrollable content */}
+              {/* Columna Izquierda — Mapa o Tabla */}
               <div className="min-w-0 flex-1">
                 {vista === "mapa" ? (
                   <PlantMap
@@ -362,7 +380,7 @@ function Index() {
                 )}
               </div>
 
-              {/* Right — sticky details panel (desktop only) */}
+              {/* Columna Derecha — Panel de detalles fijo (Sólo en Desktop) */}
               <div className="no-print hidden w-80 shrink-0 lg:sticky lg:top-[65px] lg:block lg:self-start">
                 <DetailsPanel area={selectedArea} />
               </div>
@@ -371,7 +389,7 @@ function Index() {
         )}
       </main>
 
-      {/* ── Mobile bottom Sheet ── */}
+      {/* ── Modal Inferior (Sheet) para detalles en vista Móvil ── */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent
           side="bottom"

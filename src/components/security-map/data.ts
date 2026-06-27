@@ -1,34 +1,40 @@
-// ─── Area interface ────────────────────────────────────────────────────────────
+// ─── Interfaces del Área ────────────────────────────────────────────────────────
+// Tipos de estado posibles para determinar si el área ha sido inspeccionada a tiempo
 export type EstadoArea = "al-dia" | "pendiente" | "retrasado";
 
+// Interfaz que define la estructura de datos de un área de la planta
 export interface Area {
-  id: string;
-  nombre: string;
-  responsable: string;
-  equipo: string;
-  riesgos: string[];
-  // ── Compliance fields (Mejora 1) ──
-  territorio: string;
-  ultimaInspeccion: string; // ISO date string YYYY-MM-DD
-  proximaInspeccion: string;
+  id: string; // Identificador único
+  nombre: string; // Nombre visible del área
+  responsable: string; // Dueño o encargado del área
+  equipo: string; // Equipo autónomo asignado
+  riesgos: string[]; // Lista de riesgos identificados en el área
+  // ── Campos de cumplimiento (Compliance) ──
+  territorio: string; // Zona física a la que pertenece
+  ultimaInspeccion: string; // Fecha de última inspección (YYYY-MM-DD)
+  proximaInspeccion: string; // Fecha estimada para la siguiente
 }
 
 
+// ─── Lógica para determinar el Estado del Área ───────────────────────────────
+// Esta función evalúa la fecha de última inspección para decirnos si está al día
 export function getAreaStatus(ultimaInspeccion: string): EstadoArea {
   const hoy = new Date();
   
   if (ultimaInspeccion) {
     const fechaInspeccion = new Date(ultimaInspeccion);
-    // Si estamos en el mismo mes y año, está al día
+    // Si estamos en el mismo mes y año que la inspección, está "al día"
     if (hoy.getFullYear() === fechaInspeccion.getFullYear() && hoy.getMonth() === fechaInspeccion.getMonth()) {
       return 'al-dia';
     }
   }
   
-  // Si no, revisamos qué día es hoy
+  // Si no se inspeccionó este mes, evaluamos qué día del mes es hoy.
+  // Se da un periodo de gracia hasta el día 20 para hacer la inspección.
   if (hoy.getDate() <= 20) {
     return 'pendiente';
   } else {
+    // Si pasa del día 20, ya se considera "retrasado"
     return 'retrasado';
   }
 }
@@ -83,7 +89,8 @@ export const areas: Area[] = [
   { id: "area-de-soldadura", nombre: "Area de Soldadura", responsable: "FLAVIO CESAR DIAZ MALDONADO", equipo: "NAHUALES", riesgos: ["Radiaciones no ionizantes", "Incendio"], territorio: "Zona Este", ultimaInspeccion: "", proximaInspeccion: "" },
 ];
 
-// ─── Compliance helpers ────────────────────────────────────────────────────────
+// ─── Estilos y Metadata de Cumplimiento ───────────────────────────────────────
+// Define los colores y clases CSS que se utilizarán según el estado del área
 export const ESTADO_META: Record<EstadoArea, {
   label: string;
   color: string;
@@ -122,25 +129,31 @@ export const ESTADO_META: Record<EstadoArea, {
   },
 };
 
-// ─── Risk level ────────────────────────────────────────────────────────────────
+
+// ─── Lógica para Niveles de Riesgo ──────────────────────────────────────────
 export type RiskLevel = "danger" | "alert" | "warning";
 
+// Clasifica el nivel de un riesgo basándose en palabras clave
 export function classifyRisk(risk: string): RiskLevel {
   const r = risk.toLowerCase();
+  // Riesgos muy altos (danger)
   if (/eléctric|electric|incendio|arco|alta tensión|tensión/.test(r)) return "danger";
   if (/explosión|explosion/.test(r)) return "danger";
+  // Riesgos medios (alert)
   if (/caída|caida|atrapamiento|montacargas|confinad|obstácul|obstacul|baja altura|alturas|desnivel|corrosiv|radiac/.test(r))
     return "alert";
+  // Riesgos estándar (warning)
   return "warning";
 }
 
+// Obtiene el nivel de riesgo más alto de una lista de riesgos
 export function getMaxRiskLevel(riesgos: string[]): RiskLevel {
   if (riesgos.some((r) => classifyRisk(r) === "danger")) return "danger";
   if (riesgos.some((r) => classifyRisk(r) === "alert")) return "alert";
   return "warning";
 }
 
-// ─── Risk categories ───────────────────────────────────────────────────────────
+// ─── Categorías de Riesgos (Agrupación Visual) ──────────────────────────────
 export type RiskCategory =
   | "electrico"
   | "fuego"
@@ -148,6 +161,7 @@ export type RiskCategory =
   | "atrapamiento"
   | "otro";
 
+// Configuración de colores para cada categoría de riesgo
 export const RISK_CATEGORIES: {
   id: RiskCategory;
   label: string;
@@ -161,6 +175,7 @@ export const RISK_CATEGORIES: {
   { id: "otro", label: "Otro", color: "text-slate-400", hex: "#94a3b8" },
 ];
 
+// Asigna una categoría a una cadena de riesgo mediante expresiones regulares
 export function getRiskCategory(risk: string): RiskCategory {
   const r = risk.toLowerCase();
   if (/eléctric|electric|tensión|arco/.test(r)) return "electrico";
@@ -170,7 +185,8 @@ export function getRiskCategory(risk: string): RiskCategory {
   return "otro";
 }
 
-// ─── Team metadata ─────────────────────────────────────────────────────────────
+// ─── Metadatos y colores por Equipo (Team metadata) ──────────────────────────
+// Cada equipo tiene colores distintivos en la UI
 export const TEAM_META: Record<
   string,
   { color: string; hex: string; activeChip: string; inactiveChip: string; dot: string; border: string; header: string }
@@ -231,6 +247,7 @@ export const TEAM_META: Record<
   },
 };
 
+// Estilos por defecto para equipos no mapeados explícitamente
 export const DEFAULT_TEAM_META = {
   color: "text-slate-400",
   hex: "#94a3b8",
@@ -242,10 +259,11 @@ export const DEFAULT_TEAM_META = {
 };
 
 // ─── KPI Mensual — Programa de Prerrequisitos 2026 (Mejora 2) ─────────────────
+// Interfaz para definir la estructura de los datos mensuales de Key Performance Indicators
 export interface KpiMes {
   mes: string;
-  mesCorto: string;
-  cumplimiento: number;       // % cumplimiento general del programa
+  mesCorto: string; // Para gráficos y leyendas
+  cumplimiento: number; // % cumplimiento general del programa
   auditoriasRealizadas: number;
   auditoriasPlaneadas: number;
   observacionesAbiertas: number;
@@ -254,6 +272,7 @@ export interface KpiMes {
   accionesCerradas: number;
 }
 
+// Datos estadísticos estáticos (mock) para la visualización mensual
 export const KPI_MENSUAL: KpiMes[] = [
   { mes: "Enero 2026",   mesCorto: "Ene", cumplimiento: 72, auditoriasRealizadas: 18, auditoriasPlaneadas: 22, observacionesAbiertas: 14, observacionesCerradas: 8,  accionesCorrectivas: 11, accionesCerradas: 6 },
   { mes: "Febrero 2026", mesCorto: "Feb", cumplimiento: 75, auditoriasRealizadas: 20, auditoriasPlaneadas: 22, observacionesAbiertas: 12, observacionesCerradas: 10, accionesCorrectivas: 9,  accionesCerradas: 7 },

@@ -1,3 +1,4 @@
+// ─── Importaciones y Componentes ──────────────────────────────────────────────
 import { useMemo } from "react";
 import { Search, X, SlidersHorizontal } from "lucide-react";
 import {
@@ -17,27 +18,33 @@ import {
   type EstadoArea,
 } from "./data";
 
-const ALL_TEAMS = [...new Set(areas.map((a) => a.equipo))];
-const ALL_ESTADOS: EstadoArea[] = ["al-dia", "pendiente", "retrasado"];
-const ALL_TERRITORIOS = [...new Set(areas.map((a) => a.territorio))].sort();
 
+// ─── Datos Estáticos Únicos para Filtros ──────────────────────────────────────
+const ALL_TEAMS = [...new Set(areas.map((a) => a.equipo))]; // Todos los equipos (Team) únicos
+const ALL_ESTADOS: EstadoArea[] = ["al-dia", "pendiente", "retrasado"]; // Estados posibles
+const ALL_TERRITORIOS = [...new Set(areas.map((a) => a.territorio))].sort(); // Territorios ordenados alfabéticamente
+
+// ─── Propiedades del Componente FilterBar ─────────────────────────────────────
 interface Props {
-  query: string;
+  query: string; // Texto de búsqueda
   onQueryChange: (q: string) => void;
-  activeEquipos: Set<string>;
+  activeEquipos: Set<string>; // Filtros de equipo activos
   onToggleEquipo: (equipo: string) => void;
-  activeCategorias: Set<RiskCategory>;
+  activeCategorias: Set<RiskCategory>; // Filtros de categorías de riesgo activos
   onToggleCategoria: (cat: RiskCategory) => void;
-  activeResponsable: string;
+  activeResponsable: string; // Responsable seleccionado en el combo box
   onResponsableChange: (r: string) => void;
-  activeEstados: Set<EstadoArea>;
+  activeEstados: Set<EstadoArea>; // Estados activos (al día, pendiente, etc)
   onToggleEstado: (e: EstadoArea) => void;
-  activeTerritorios: Set<string>;
+  activeTerritorios: Set<string>; // Territorios activos (T1, T2, etc)
   onToggleTerritorio: (t: string) => void;
-  totalVisible: number;
-  onClearAll: () => void;
+  totalVisible: number; // Cantidad de áreas mostrándose después de aplicar filtros
+  onClearAll: () => void; // Función para limpiar todos los filtros
 }
 
+// ─── Componente Principal FilterBar ──────────────────────────────────────────
+// Barra superior de la aplicación donde el usuario puede filtrar las áreas mostradas
+// en el mapa y la tabla, mediante búsqueda por texto o botones de múltiples categorías
 export function FilterBar({
   query,
   onQueryChange,
@@ -54,6 +61,7 @@ export function FilterBar({
   totalVisible,
   onClearAll,
 }: Props) {
+  // Comprueba si existe al menos un filtro activo (para mostrar el botón de limpiar)
   const hasFilters =
     !!query.trim() ||
     activeEquipos.size > 0 ||
@@ -62,6 +70,7 @@ export function FilterBar({
     activeEstados.size > 0 ||
     activeTerritorios.size > 0;
 
+  // Memoiza y ordena alfabéticamente la lista de responsables para el Select
   const responsables = useMemo(
     () => [...new Set(areas.map((a) => a.responsable))].sort(),
     []
@@ -69,7 +78,7 @@ export function FilterBar({
 
   return (
     <div className="no-print flex flex-col gap-3 rounded-2xl border border-border bg-surface-plant p-4">
-      {/* ── Row 1: Search + Responsable select ── */}
+      {/* ── Fila 1: Barra de Búsqueda + Selector de Responsable ── */}
       <div className="flex gap-3">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -112,7 +121,7 @@ export function FilterBar({
         </Select>
       </div>
 
-      {/* ── Row 2: Team chips ── */}
+      {/* ── Fila 2: Botones de filtro por Equipo (Team) ── */}
       <div className="flex flex-wrap items-center gap-2">
         <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <SlidersHorizontal className="h-3 w-3" />
@@ -137,7 +146,7 @@ export function FilterBar({
         })}
       </div>
 
-      {/* ── Row 3: Risk category chips ── */}
+      {/* ── Fila 3: Botones de filtro por Categoría de Riesgo ── */}
       <div className="flex flex-wrap items-center gap-2">
         <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <SlidersHorizontal className="h-3 w-3" />
@@ -162,7 +171,7 @@ export function FilterBar({
         })}
       </div>
 
-      {/* ── Row 4: Estado chips (Mejora 1) ── */}
+      {/* ── Fila 4: Botones de filtro por Estado de Inspección ── */}
       <div className="flex flex-wrap items-center gap-2">
         <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <SlidersHorizontal className="h-3 w-3" />
@@ -188,7 +197,7 @@ export function FilterBar({
         })}
       </div>
 
-      {/* ── Row 5: Territorio chips ── */}
+      {/* ── Fila 5: Botones de filtro por Territorio ── */}
       <div className="flex flex-wrap items-center gap-2">
         <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <SlidersHorizontal className="h-3 w-3" />
@@ -213,7 +222,7 @@ export function FilterBar({
         })}
       </div>
 
-      {/* ── Status bar (only when filters active) ── */}
+      {/* ── Barra inferior de estado (Visible sólo si hay filtros activos) ── */}
       {hasFilters && (
         <div className="flex items-center justify-between border-t border-border pt-2.5">
           <span className="text-xs text-muted-foreground">

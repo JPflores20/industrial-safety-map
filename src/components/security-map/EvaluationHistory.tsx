@@ -1,31 +1,39 @@
+// ─── Importaciones de React, Firebase y UI ──────────────────────────────────
 import { useState, useEffect } from "react";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { db } from "@/lib/firebase"; // Conexión a la base de datos Firestore
 import { ESTADO_META } from "./data";
 import { Calendar, CheckCircle2, AlertCircle, Loader2, ClipboardList } from "lucide-react";
 
+// Estructura de datos para un registro de evaluación histórica
 interface EvalRecord {
-  id: string;
-  evaluador?: string;
-  cumplimiento: number;
-  observaciones: string;
-  fecha: Date | null;
+  id: string; // ID único del documento en Firebase
+  evaluador?: string; // Nombre de quien evaluó
+  cumplimiento: number; // Porcentaje obtenido (0-100)
+  observaciones: string; // Texto de observaciones
+  fecha: Date | null; // Fecha y hora en que se realizó la evaluación
 }
 
+// ─── Componente EvaluationHistory ──────────────────────────────────────────
+// Muestra la lista de evaluaciones previas realizadas para un área específica
 export function EvaluationHistory({ areaId }: { areaId: string }) {
-  const [evaluations, setEvaluations] = useState<EvalRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [evaluations, setEvaluations] = useState<EvalRecord[]>([]); // Lista de evaluaciones
+  const [loading, setLoading] = useState(true); // Estado de carga de datos
 
   useEffect(() => {
+    // Si no hay un ID de área seleccionado, no hacemos nada
     if (!areaId) return;
 
     setLoading(true);
+    
+    // Consulta a la colección "evaluaciones" filtrando por el areaId
     const q = query(
       collection(db, "evaluaciones"),
       where("areaId", "==", areaId)
     );
 
-    // Escuchamos en tiempo real
+    // Escuchamos en tiempo real los cambios en los datos de Firebase (onSnapshot)
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const records: EvalRecord[] = snapshot.docs.map((doc) => {
         const data = doc.data();
@@ -42,7 +50,7 @@ export function EvaluationHistory({ areaId }: { areaId: string }) {
       records.sort((a, b) => {
         const dateA = a.fecha?.getTime() || 0;
         const dateB = b.fecha?.getTime() || 0;
-        return dateB - dateA; // Descendente (más nuevo primero)
+        return dateB - dateA; // Orden descendente (más nuevo primero)
       });
 
       setEvaluations(records);
@@ -52,9 +60,11 @@ export function EvaluationHistory({ areaId }: { areaId: string }) {
       setLoading(false);
     });
 
+    // Función de limpieza: se desuscribe de Firebase cuando el componente se desmonta
     return () => unsubscribe();
-  }, [areaId]);
+  }, [areaId]); // Se vuelve a ejecutar si cambia el areaId
 
+  // Mostrar indicador de carga mientras se obtienen los datos
   if (loading) {
     return (
       <div className="flex h-32 items-center justify-center text-muted-foreground">
@@ -63,6 +73,9 @@ export function EvaluationHistory({ areaId }: { areaId: string }) {
     );
   }
 
+  }
+
+  // Si no hay evaluaciones previas, mostrar un mensaje de estado vacío (Empty State)
   if (evaluations.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-10 text-center text-muted-foreground">
@@ -74,6 +87,7 @@ export function EvaluationHistory({ areaId }: { areaId: string }) {
     );
   }
 
+  // Renderizar la lista de evaluaciones históricas
   return (
     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
       {evaluations.map((ev) => {
@@ -111,8 +125,10 @@ export function EvaluationHistory({ areaId }: { areaId: string }) {
               </div>
             </div>
 
+            {/* Renderizado condicional de las observaciones (sólo si existen) */}
             {(() => {
               const obsText = typeof ev.observaciones === 'object' 
+
                 ? (ev.observaciones && Object.keys(ev.observaciones).length > 0 ? JSON.stringify(ev.observaciones) : null) 
                 : ev.observaciones;
                 

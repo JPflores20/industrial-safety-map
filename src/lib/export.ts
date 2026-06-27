@@ -1,8 +1,8 @@
 import type { Area } from "@/components/security-map/data";
 
 /**
- * Exports the given areas array as a UTF-8 CSV file with BOM
- * (so Excel opens it correctly with Spanish characters).
+ * Exporta el arreglo de áreas proporcionado como un archivo CSV en formato UTF-8 con BOM.
+ * (El BOM asegura que Excel lo abra correctamente y mantenga los caracteres en español, como acentos y eñes).
  */
 export function exportCSV(areasToExport: Area[], filename = "seguridad-industrial.csv") {
   const header = ["ID", "Área", "Equipo", "Responsable", "Riesgos", "# Riesgos"].join(",");
@@ -19,7 +19,8 @@ export function exportCSV(areasToExport: Area[], filename = "seguridad-industria
   );
 
   const csv = [header, ...rows].join("\n");
-  // UTF-8 BOM ensures Excel correctly decodes Spanish characters
+  // El caracter BOM (Byte Order Mark) UTF-8 le indica a Excel cómo decodificar correctamente los caracteres
+
   const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
@@ -30,8 +31,8 @@ export function exportCSV(areasToExport: Area[], filename = "seguridad-industria
 }
 
 /**
- * Triggers the browser print dialog, which can save to PDF.
- * The @media print styles in styles.css hide non-essential UI elements.
+ * Abre el diálogo de impresión del navegador, el cual permite guardar la vista como PDF.
+ * Los estilos de impresión (@media print) en styles.css ocultan los elementos no esenciales (como botones y barras).
  */
 export function exportPDF() {
   window.print();

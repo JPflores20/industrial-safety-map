@@ -1,18 +1,22 @@
+// ─── Importaciones de librerías y componentes ────────────────────────────────
 import { useState, useEffect, useRef } from "react";
-import confetti from "canvas-confetti";
+import confetti from "canvas-confetti"; // Para animación de celebración
 import { collection, query, onSnapshot } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { Loader2, Target, Trophy, Crown } from "lucide-react";
+import { db } from "@/lib/firebase"; // Configuración de base de datos
+import { Loader2, Target, Trophy, Crown } from "lucide-react"; // Iconos UI
 import { areas, getAreaStatus, ESTADO_META, type EstadoArea } from "./data";
 import { Avatar } from "./Avatar";
 import { TeamLogo } from "./TeamLogo";
 
+// ─── Interfaces y Tipos de Datos ─────────────────────────────────────────────
+// Representa un registro de evaluación obtenido de Firebase
 interface EvalRecord {
   areaId: string;
   cumplimiento: number;
   fecha: Date | null;
 }
 
+// Representa los datos combinados para mostrar el ranking de un área
 interface AreaRanking {
   id: string;
   nombre: string;
@@ -23,6 +27,7 @@ interface AreaRanking {
   estado: EstadoArea;
 }
 
+// Diccionario estático de líderes por equipo
 const teamLeaders: Record<string, string> = {
   "LOS PANCHITOS": "JOSE FRANCISCO TORRES LÓPEZ",
   "MASH-RAINBOW": "RODRÍGUEZ RANGEL JOSÉ LUIS",
@@ -32,29 +37,35 @@ const teamLeaders: Record<string, string> = {
   "MOSTO-BOYS": "OBED CALVILLO RAMIREZ"
 };
 
-
+// ─── Componente Principal RankingView ────────────────────────────────────────
+// Muestra una tabla de posiciones con el promedio de cumplimiento de cada área
 export function RankingView() {
   const [rankings, setRankings] = useState<AreaRanking[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedMonth, setSelectedMonth] = useState("all");
-  const confettiCanvasRef = useRef<HTMLCanvasElement>(null);
+  const [loading, setLoading] = useState(true); // Estado de carga de datos
+  const [selectedMonth, setSelectedMonth] = useState("all"); // Filtro de mes
+  const confettiCanvasRef = useRef<HTMLCanvasElement>(null); // Referencia para el canvas de confeti
 
+  // ── Hook para obtener datos de Firebase en tiempo real ──
   useEffect(() => {
     setLoading(true);
+    // Consulta a la colección "evaluaciones"
     const q = query(collection(db, "evaluaciones"));
 
+    // Suscripción a cambios en Firestore
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      // Mapeo de documentos a objetos EvalRecord
       const records: EvalRecord[] = snapshot.docs.map(doc => ({
         areaId: doc.data().areaId,
         cumplimiento: doc.data().cumplimiento || 0,
         fecha: doc.data().fecha?.toDate() || null,
       })).filter(record => {
+        // Filtro por mes seleccionado
         if (selectedMonth === "all") return true;
         if (!record.fecha) return false;
         return (record.fecha.getMonth() + 1).toString() === selectedMonth;
       });
 
-      // Agrupar y calcular promedios
+      // Agrupar evaluaciones por área y sumar para calcular el promedio
       const areaStats = new Map<string, { total: number, count: number, latest: Date | null }>();
       
       records.forEach(record => {
@@ -95,7 +106,7 @@ export function RankingView() {
         });
       });
 
-      // Ordenar por estado (Al Día > Pendiente > Retrasado) y luego por promedio
+      // Ordenar por estado (Al Día > Pendiente > Retrasado) y luego por mayor promedio
       const estadoWeight = { "al-dia": 3, "pendiente": 2, "retrasado": 1 };
       rankingData.sort((a, b) => {
         if (estadoWeight[a.estado] !== estadoWeight[b.estado]) {
@@ -111,12 +122,15 @@ export function RankingView() {
       setLoading(false);
     });
 
+    // Limpiar suscripción al desmontar
     return () => unsubscribe();
   }, [selectedMonth]);
 
+  // Obtener la mejor y peor área del ranking
   const bestArea = rankings.length > 0 && rankings[0].promedio > 0 ? rankings[0] : null;
   const worstArea = rankings.length > 0 ? rankings[rankings.length - 1] : null;
 
+  // ── Efecto de animación de confeti para la mejor área ──
   useEffect(() => {
     if (bestArea && confettiCanvasRef.current) {
       const myConfetti = confetti.create(confettiCanvasRef.current, {
@@ -161,9 +175,9 @@ export function RankingView() {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[1400px] mx-auto space-y-8 pb-12">
       
-      {/* HEADER SECTION (Best Area, Brewman Logo, Worst Area) */}
+      {/* ── SECCIÓN DE ENCABEZADO (Mejor Área, Logo Central, Peor Área) ── */}
       <div className="flex flex-col xl:flex-row gap-4 mb-6 relative bg-slate-950/50 p-4 rounded-2xl border border-border/50 shadow-inner">
-        {/* LEFT: BEST AREA */}
+        {/* IZQUIERDA: TARJETA DE LA MEJOR ÁREA */}
         {bestArea ? (
           <div className="flex-1 rounded-[1.25rem] bg-[#0a1120] border-2 border-emerald-500/20 p-4 relative overflow-hidden group shadow-lg">
             <canvas ref={confettiCanvasRef} className="absolute inset-0 w-full h-full pointer-events-none z-10" />
@@ -211,7 +225,7 @@ export function RankingView() {
           </div>
         )}
 
-        {/* MIDDLE: BREWMAN LOGO & MONTH FILTER */}
+        {/* CENTRO: LOGO PRINCIPAL Y FILTRO DE MESES */}
         <div className="flex flex-col items-center justify-center px-2 shrink-0 py-2">
           <div className="h-20 w-20 rounded-2xl flex items-center justify-center shadow-lg mb-3 overflow-hidden border border-white/5 bg-black">
             <img src="/logos/BREWMAN.jpeg" alt="Brewman" className="h-full w-full object-cover" />
@@ -241,7 +255,7 @@ export function RankingView() {
           </select>
         </div>
 
-        {/* RIGHT: WORST AREA (AREA FOCO) */}
+        {/* DERECHA: TARJETA DEL ÁREA FOCO (PEOR ÁREA) */}
         {worstArea ? (
           <div className="flex-1 rounded-[1.25rem] bg-[#0a1120] border-2 border-red-500/30 p-4 relative overflow-visible group">
             {/* PULSING EFFECT */}
@@ -292,7 +306,7 @@ export function RankingView() {
         )}
       </div>
 
-      {/* TABLE VIEW */}
+      {/* ── VISTA DE TABLA DE POSICIONES ── */}
       <div className="w-full overflow-x-auto rounded-t-lg shadow-md border border-[#1e3a8a]/20">
         <table className="w-full text-sm text-left border-collapse bg-white dark:bg-card">
           <thead className="bg-[#1e3a8a] text-white text-[11px] font-bold uppercase tracking-wider">

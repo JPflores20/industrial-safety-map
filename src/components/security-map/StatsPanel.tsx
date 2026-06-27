@@ -1,4 +1,6 @@
+// ─── Importaciones principales ────────────────────────────────────────────────
 import { useState, useMemo } from "react";
+// Librería Recharts para mostrar gráficas
 import {
   BarChart,
   Bar,
@@ -36,14 +38,16 @@ import {
   KPI_MENSUAL,
 } from "./data";
 
-// ─── Precomputed stats ─────────────────────────────────────────────────────────
-const allRisks = areas.flatMap((a) => a.riesgos);
+// ─── Estadísticas Precalculadas (Derivadas de los datos estáticos) ─────────────
+// Se calculan globalmente una sola vez en lugar de hacerlo en cada renderizado
+const allRisks = areas.flatMap((a) => a.riesgos); // Todos los riesgos en un solo arreglo
 const totalAreas = areas.length;
-const uniqueRisks = new Set(allRisks).size;
+const uniqueRisks = new Set(allRisks).size; // Número de riesgos sin duplicados
 const totalTeams = new Set(areas.map((a) => a.equipo)).size;
-const dangerCount = areas.filter((a) => getMaxRiskLevel(a.riesgos) === "danger").length;
-const vencidoCount = areas.filter((a) => a.estado === "vencido").length;
+const dangerCount = areas.filter((a) => getMaxRiskLevel(a.riesgos) === "danger").length; // Áreas en estado "danger"
+const vencidoCount = areas.filter((a) => a.estado === "vencido").length; // Áreas vencidas
 
+// ─── Estilos comunes para los tooltips de las gráficas ───────────────────────
 const chartTooltipStyle = {
   background: "#1a1f35",
   border: "1px solid rgba(255,255,255,0.08)",
@@ -52,12 +56,15 @@ const chartTooltipStyle = {
   fontSize: "12px",
 };
 
-type Tab = "general" | "kpi";
+type Tab = "general" | "kpi"; // Pestañas disponibles en el panel
 
+// ─── Componente Principal StatsPanel ─────────────────────────────────────────
+// Muestra el panel desplegable superior con estadísticas generales y gráficas de KPI
 export function StatsPanel() {
-  const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<Tab>("general");
+  const [open, setOpen] = useState(false); // Estado para abrir/cerrar el panel
+  const [tab, setTab] = useState<Tab>("general"); // Pestaña actual activa
 
+  // Memoización de los datos de categoría de riesgos para la gráfica de barras
   const riskCategoryData = useMemo(
     () =>
       RISK_CATEGORIES.map((cat) => ({
@@ -68,6 +75,7 @@ export function StatsPanel() {
     []
   );
 
+  // Memoización de la distribución de equipos para la gráfica de pastel (Pie chart)
   const teamData = useMemo(
     () =>
       [...new Set(areas.map((a) => a.equipo))].map((equipo) => ({
@@ -78,7 +86,8 @@ export function StatsPanel() {
     []
   );
 
-  // KPI derived data
+  // ─── Cálculos de KPI (Derivados de datos estáticos mensuales) ────────────
+  // Obtiene los datos del último mes y el anterior para calcular las tendencias (pp)
   const latestKpi = KPI_MENSUAL[KPI_MENSUAL.length - 1];
   const prevKpi = KPI_MENSUAL[KPI_MENSUAL.length - 2];
   const kpiTrend = latestKpi.cumplimiento - prevKpi.cumplimiento;
@@ -124,10 +133,10 @@ export function StatsPanel() {
         </div>
       </button>
 
-      {/* ── Expanded content ── */}
+      {/* ── Contenido Expandido ── */}
       {open && (
         <div className="border-t border-border">
-          {/* Tab nav */}
+          {/* ── Navegación por pestañas (Tabs) ── */}
           <div className="flex gap-1 border-b border-border px-5 pt-4">
             <TabBtn id="tab-general" active={tab === "general"} onClick={() => setTab("general")}>
               <BarChart2 className="h-3.5 w-3.5" />
@@ -139,7 +148,7 @@ export function StatsPanel() {
             </TabBtn>
           </div>
 
-          {/* ── General tab ── */}
+          {/* ── Pestaña: General ── */}
           {tab === "general" && (
             <div className="px-5 pb-5">
               <div className="grid grid-cols-1 gap-6 pt-5 md:grid-cols-2">
@@ -177,7 +186,7 @@ export function StatsPanel() {
                   </ResponsiveContainer>
                 </div>
 
-                {/* Pie chart — areas per team */}
+                {/* ── Gráfica de Pastel (Pie Chart) — Áreas por equipo ── */}
                 <div>
                   <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                     Distribución de áreas por equipo
@@ -218,10 +227,10 @@ export function StatsPanel() {
             </div>
           )}
 
-          {/* ── KPI tab ── */}
+          {/* ── Pestaña: KPIs ── */}
           {tab === "kpi" && (
             <div className="px-5 pb-5 pt-5">
-              {/* KPI summary cards */}
+              {/* Tarjetas resumen de los principales indicadores mensuales */}
               <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <KpiCard
                   icon={<Target className="h-4 w-4 text-emerald-400" />}
@@ -254,7 +263,7 @@ export function StatsPanel() {
               </div>
 
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                {/* Line chart — monthly compliance trend */}
+                {/* ── Gráfica de Líneas — Tendencia mensual de cumplimiento ── */}
                 <div>
                   <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                     Tendencia cumplimiento (Ene – Jun 2026)
@@ -291,7 +300,7 @@ export function StatsPanel() {
                   </ResponsiveContainer>
                 </div>
 
-                {/* Grouped bar — observaciones abiertas vs cerradas */}
+                {/* ── Gráfica de Barras Agrupadas — Observaciones abiertas vs cerradas ── */}
                 <div>
                   <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                     Observaciones abiertas vs. cerradas
@@ -329,7 +338,9 @@ export function StatsPanel() {
   );
 }
 
-// ─── Sub-components ────────────────────────────────────────────────────────────
+// ─── Sub-Componentes UI Reutilizables ────────────────────────────────────────
+
+// Pequeña píldora métrica usada en el encabezado
 function MetricPill({
   icon,
   label,
@@ -358,6 +369,7 @@ function MetricPill({
   );
 }
 
+// Botón de las pestañas de navegación (General / KPI)
 function TabBtn({
   id,
   active,
@@ -385,6 +397,7 @@ function TabBtn({
   );
 }
 
+// Tarjeta que muestra un indicador KPI, su valor y su tendencia
 function KpiCard({
   icon,
   label,

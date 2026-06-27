@@ -1,3 +1,4 @@
+// ─── Importaciones de React, Iconos y Componentes ─────────────────────────────
 import { useState } from "react";
 import {
   Map,
@@ -24,29 +25,32 @@ import { ChecklistForm, type EvaluationData } from "./ChecklistForm";
 import { EvaluationHistory } from "./EvaluationHistory";
 import { Avatar } from "./Avatar";
 import { TeamLogo } from "./TeamLogo";
-import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { toast } from "sonner";
+import { db } from "@/lib/firebase"; // Conexión a Firebase
+import { collection, addDoc, serverTimestamp } from "firebase/firestore"; // Utilidades de Firestore
+import { toast } from "sonner"; // Librería de notificaciones
 
+// Propiedades que recibe el panel (el área seleccionada en el mapa o nulo si no hay selección)
 interface Props {
   area: Area | null;
 }
 
+// ─── Estilos por Nivel de Riesgo ──────────────────────────────────────────────
 const riskStyles: Record<RiskLevel, { chip: string; glow: string }> = {
   warning: {
     chip: "border-amber-500/40 bg-amber-500/10 text-amber-300",
-    glow: "",
+    glow: "", // Sin resplandor extra
   },
   alert: {
     chip: "border-orange-500/40 bg-orange-500/10 text-orange-300",
-    glow: "",
+    glow: "", // Sin resplandor extra
   },
   danger: {
     chip: "border-red-500/40 bg-red-500/10 text-red-300",
-    glow: "shadow-[0_0_8px_-2px_rgba(239,68,68,0.5)]",
+    glow: "shadow-[0_0_8px_-2px_rgba(239,68,68,0.5)]", // Resplandor rojo intenso
   },
 };
 
+// ─── Selector de Iconos para la lista de riesgos ────────────────────────────
 function RiskIcon({ risk }: { risk: string }) {
   const r = risk.toLowerCase();
   if (/eléctric|electric|tensión|arco/.test(r))
@@ -64,7 +68,8 @@ function RiskIcon({ risk }: { risk: string }) {
   return <AlertTriangle className="h-3.5 w-3.5 text-slate-400" />;
 }
 
-// ─── Risk item with expandable controls ────────────────────────────────────────
+// ─── Componente de Ítem de Riesgo (Desplegable) ─────────────────────────────
+// Muestra el nombre del riesgo y, si se expande, muestra el EPP requerido y medidas de control
 function RiskItem({ riesgo }: { riesgo: string }) {
   const [expanded, setExpanded] = useState(false);
   const level = classifyRisk(riesgo);
@@ -73,6 +78,7 @@ function RiskItem({ riesgo }: { riesgo: string }) {
 
   return (
     <li className={`rounded-lg border ${chip} ${glow} overflow-hidden`}>
+      {/* Botón principal del ítem de riesgo */}
       <button
         type="button"
         onClick={() => setExpanded((e) => !e)}
@@ -88,9 +94,10 @@ function RiskItem({ riesgo }: { riesgo: string }) {
         )}
       </button>
 
+      {/* Panel Expandido: EPP, Medidas y Normas */}
       {expanded && control && (
         <div className="border-t border-current/20 bg-black/20 px-3 pb-3 pt-2 space-y-3">
-          {/* EPP */}
+          {/* Sección de EPP (Equipo de Protección Personal) */}
           <div>
             <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest opacity-70">
               <HardHat className="h-3 w-3" />
@@ -109,7 +116,7 @@ function RiskItem({ riesgo }: { riesgo: string }) {
             </div>
           </div>
 
-          {/* Medidas de control */}
+          {/* Sección de Medidas de control */}
           <div>
             <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest opacity-70">
               <ListChecks className="h-3 w-3" />
@@ -125,7 +132,7 @@ function RiskItem({ riesgo }: { riesgo: string }) {
             </ul>
           </div>
 
-          {/* Norma / Permiso */}
+          {/* Sección de Normas / Permisos (Si existen) */}
           {(control.norma || control.permiso) && (
             <div className="flex flex-wrap gap-2">
               {control.norma && (
@@ -147,10 +154,13 @@ function RiskItem({ riesgo }: { riesgo: string }) {
   );
 }
 
+// ─── Componente Principal DetailsPanel ──────────────────────────────────────
+// Muestra el panel lateral de detalles de un área (responsable, riesgos, historial)
 export function DetailsPanel({ area }: Props) {
-  const [showChecklist, setShowChecklist] = useState(false);
-  const [activeTab, setActiveTab] = useState<"detalles" | "historial">("detalles");
+  const [showChecklist, setShowChecklist] = useState(false); // Modal de evaluación
+  const [activeTab, setActiveTab] = useState<"detalles" | "historial">("detalles"); // Pestañas
 
+  // Guarda la evaluación en Firebase y muestra una notificación
   const handleSaveChecklist = async (data: EvaluationData) => {
     try {
       if (!area) return;
@@ -180,6 +190,7 @@ export function DetailsPanel({ area }: Props) {
     }
   };
 
+
   const estado = area ? getAreaStatus(area.ultimaInspeccion) : null;
 
   return (
@@ -208,10 +219,10 @@ export function DetailsPanel({ area }: Props) {
             </h2>
           </header>
 
-          {/* Amber accent divider */}
+          {/* Separador visual color ámbar */}
           <div className="h-px bg-gradient-to-r from-amber-500/40 via-border to-transparent" />
 
-          {/* Info rows */}
+          {/* Tarjetas de Información del Dueño y Equipo Autónomo */}
           <div className="space-y-3">
             <InfoRow
               icon={<User className="h-4 w-4 text-amber-400" />}
@@ -227,9 +238,10 @@ export function DetailsPanel({ area }: Props) {
             />
           </div>
 
-          {/* ── Compliance / Inspection status (Mejora 1) ── */}
+          {/* ── Sección de Cumplimiento / Estado de Inspección ── */}
           <div className="rounded-xl border border-border bg-background/30 p-3 space-y-3">
-            {/* Estado badge */}
+            {/* Etiqueta del Estado (Badge) */}
+
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 {estado === "al-dia" ? (
@@ -328,12 +340,12 @@ export function DetailsPanel({ area }: Props) {
             </div>
           )}
 
-          {/* Footer stamp */}
+          {/* Pie del Panel */}
           <div className="rounded-lg border border-border/50 bg-surface-zone px-3 py-2 text-center text-[10px] uppercase tracking-widest text-muted-foreground/60">
             Sistema de Seguridad Industrial
           </div>
 
-          {/* Modal Checklist */}
+          {/* Modal de Evaluación (ChecklistForm) visible cuando se requiere */}
           {showChecklist && area && (
             <ChecklistForm
               area={area}
