@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import confetti from "canvas-confetti"; // Para animación de celebración
 import { collection, query, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase"; // Configuración de base de datos
-import { Loader2, Target, Trophy, Crown } from "lucide-react"; // Iconos UI
+import { Loader2, Target, Trophy, Crown, AlertTriangle } from "lucide-react"; // Iconos UI
 import { areas, getAreaStatus, ESTADO_META, type EstadoArea } from "./data";
 import { Avatar } from "./Avatar";
 import { TeamLogo } from "./TeamLogo";
@@ -14,6 +14,7 @@ interface EvalRecord {
   areaId: string;
   cumplimiento: number;
   fecha: Date | null;
+  respuestas?: Record<string, string>;
 }
 
 // Representa los datos combinados para mostrar el ranking de un área
@@ -25,6 +26,12 @@ interface AreaRanking {
   promedio: number;
   totalEvaluaciones: number;
   estado: EstadoArea;
+}
+
+interface FindingRanking {
+  pregunta: string;
+  total: number;
+  areas: Record<string, number>; // areaId -> count
 }
 
 // Diccionario estático de líderes por equipo
@@ -41,6 +48,7 @@ const teamLeaders: Record<string, string> = {
 // Muestra una tabla de posiciones con el promedio de cumplimiento de cada área
 export function RankingView() {
   const [rankings, setRankings] = useState<AreaRanking[]>([]);
+  const [topFindings, setTopFindings] = useState<FindingRanking[]>([]);
   const [loading, setLoading] = useState(true); // Estado de carga de datos
   const [selectedMonth, setSelectedMonth] = useState("all"); // Filtro de mes
   const confettiCanvasRef = useRef<HTMLCanvasElement>(null); // Referencia para el canvas de confeti
@@ -58,6 +66,7 @@ export function RankingView() {
         areaId: doc.data().areaId,
         cumplimiento: doc.data().cumplimiento || 0,
         fecha: doc.data().fecha?.toDate() || null,
+        respuestas: doc.data().respuestas || {},
       })).filter(record => {
         // Filtro por mes seleccionado
         if (selectedMonth === "all") return true;
@@ -81,6 +90,30 @@ export function RankingView() {
           latest: newLatest
         });
       });
+
+      // Procesar ranking de hallazgos negativos
+      const findingsStats = new Map<string, { total: number; areas: Record<string, number> }>();
+      
+      records.forEach(record => {
+        if (record.respuestas) {
+          for (const [pregunta, respuesta] of Object.entries(record.respuestas)) {
+            if (respuesta === "no-cumple") {
+              const current = findingsStats.get(pregunta) || { total: 0, areas: {} };
+              current.total += 1;
+              current.areas[record.areaId] = (current.areas[record.areaId] || 0) + 1;
+              findingsStats.set(pregunta, current);
+            }
+          }
+        }
+      });
+
+      const findingRankingData: FindingRanking[] = Array.from(findingsStats.entries()).map(([pregunta, stats]) => ({
+        pregunta,
+        total: stats.total,
+        areas: stats.areas,
+      })).sort((a, b) => b.total - a.total).slice(0, 10); // top 10 hallazgos
+      
+      setTopFindings(findingRankingData);
 
       // Mapear con datos de áreas estáticas y calcular promedios finales
       const rankingData: AreaRanking[] = [];
@@ -430,6 +463,57 @@ export function RankingView() {
             })}
           </tbody>
         </table>
+      </div>
+
+      {/* ── RANKING DE HALLAZGOS ── */}
+      <div className="mt-12 bg-[#0a1120] rounded-2xl border border-border/50 p-6 shadow-xl relative overflow-hidden">
+        {/* Glow effect */}
+        <div className="absolute top-[-50%] left-[-10%] w-[120%] h-[200%] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-red-900/10 via-transparent to-transparent pointer-events-none" />
+        
+        <div className="flex items-center gap-3 mb-6 relative z-10">
+          <AlertTriangle className="h-6 w-6 text-red-500" />
+          <h2 className="text-xl font-black text-white uppercase tracking-wider">Top Hallazgos Negativos</h2>
+          <span className="text-sm text-slate-400 ml-auto font-medium hidden sm:block">Preguntas con más incumplimientos</span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 relative z-10">
+          {topFindings.map((finding, index) => (
+            <div key={index} className="bg-slate-900/60 rounded-xl border border-red-500/20 p-5 relative overflow-hidden flex flex-col group hover:border-red-500/40 transition-colors shadow-sm hover:shadow-md">
+              <div className="absolute top-0 left-0 w-1 h-full bg-red-500/60" />
+              <div className="flex justify-between items-start mb-3 gap-2">
+                <span className="text-red-400 font-black text-3xl leading-none opacity-80 group-hover:opacity-100 transition-opacity">#{index + 1}</span>
+                <span className="bg-red-500/10 text-red-400 text-[10px] font-bold px-2 py-1 rounded border border-red-500/20 whitespace-nowrap tracking-wider shadow-inner">
+                  {finding.total} INCIDENCIAS
+                </span>
+              </div>
+              <p className="text-sm text-slate-200 font-semibold mb-5 flex-1 leading-snug">{finding.pregunta}</p>
+              
+              <div className="border-t border-white/10 pt-4 mt-auto">
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-2.5">Áreas más afectadas:</p>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(finding.areas)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 3)
+                    .map(([areaId, count]) => {
+                      const areaData = areas.find(a => a.id === areaId);
+                      return (
+                        <span key={areaId} className="bg-black/40 text-slate-300 text-[10px] font-medium px-2 py-1 rounded border border-white/5 flex items-center gap-1.5">
+                          {areaData?.nombre || areaId}
+                          <span className="text-red-400 font-black px-1.5 py-0.5 bg-red-500/10 rounded-sm leading-none">{count}</span>
+                        </span>
+                      );
+                  })}
+                </div>
+              </div>
+            </div>
+          ))}
+          {topFindings.length === 0 && (
+            <div className="col-span-full flex flex-col items-center justify-center py-12 text-slate-500 border border-dashed border-white/10 rounded-xl bg-slate-900/30">
+              <Target className="h-10 w-10 opacity-30 mb-3" />
+              <p className="text-sm font-medium">No hay hallazgos negativos registrados con los filtros actuales.</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

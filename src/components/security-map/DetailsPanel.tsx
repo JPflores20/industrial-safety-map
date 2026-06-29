@@ -1,5 +1,5 @@
 // ─── Importaciones de React, Iconos y Componentes ─────────────────────────────
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Map,
   User,
@@ -26,7 +26,7 @@ import { EvaluationHistory } from "./EvaluationHistory";
 import { Avatar } from "./Avatar";
 import { TeamLogo } from "./TeamLogo";
 import { db } from "@/lib/firebase"; // Conexión a Firebase
-import { collection, addDoc, serverTimestamp } from "firebase/firestore"; // Utilidades de Firestore
+import { collection, addDoc, serverTimestamp, query, where, onSnapshot } from "firebase/firestore"; // Utilidades de Firestore
 import { toast } from "sonner"; // Librería de notificaciones
 
 // Propiedades que recibe el panel (el área seleccionada en el mapa o nulo si no hay selección)
@@ -159,6 +159,45 @@ function RiskItem({ riesgo }: { riesgo: string }) {
 export function DetailsPanel({ area }: Props) {
   const [showChecklist, setShowChecklist] = useState(false); // Modal de evaluación
   const [activeTab, setActiveTab] = useState<"detalles" | "historial">("detalles"); // Pestañas
+  const [findings, setFindings] = useState<{ pregunta: string; observacion: string; fecha: Date }[]>([]);
+
+  // Hook para cargar los últimos 3 hallazgos del área
+  useEffect(() => {
+    if (!area) {
+      setFindings([]);
+      return;
+    }
+
+    const q = query(
+      collection(db, "evaluaciones"),
+      where("areaId", "==", area.id)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      let allFindings: { pregunta: string; observacion: string; fecha: Date }[] = [];
+      
+      for (const doc of snapshot.docs) {
+        const data = doc.data();
+        if (data.respuestas && data.observaciones) {
+          for (const [pregunta, respuesta] of Object.entries(data.respuestas)) {
+            if (respuesta === "no-cumple" && data.observaciones[pregunta]) {
+              allFindings.push({
+                pregunta,
+                observacion: data.observaciones[pregunta] as string,
+                fecha: data.fecha?.toDate() || new Date()
+              });
+            }
+          }
+        }
+      }
+      
+      // Ordenar por fecha descendente y tomar los primeros 3
+      allFindings.sort((a, b) => b.fecha.getTime() - a.fecha.getTime());
+      setFindings(allFindings.slice(0, 3));
+    });
+
+    return () => unsubscribe();
+  }, [area]);
 
   // Guarda la evaluación en Firebase y muestra una notificación
   const handleSaveChecklist = async (data: EvaluationData) => {
@@ -277,11 +316,11 @@ export function DetailsPanel({ area }: Props) {
               <div>
                 <p className="text-muted-foreground">Próxima inspección</p>
                 <p className={`font-semibold ${estado === "retrasado" ? "text-red-400" : "text-foreground"}`}>
-                  {new Date(area.proximaInspeccion + "T12:00:00").toLocaleDateString("es-MX", {
+                  {area.proximaInspeccion ? new Date(area.proximaInspeccion + "T12:00:00").toLocaleDateString("es-MX", {
                     day: "2-digit",
                     month: "short",
                     year: "numeric",
-                  })}
+                  }) : "No programada"}
                 </p>
               </div>
             </div>
@@ -333,6 +372,35 @@ export function DetailsPanel({ area }: Props) {
                 <RiskItem key={riesgo} riesgo={riesgo} />
               ))}
             </ul>
+
+            {findings.length > 0 && (
+              <div className="mt-4 flex flex-col gap-3 rounded-xl border border-red-500/30 bg-red-500/10 p-4 shadow-inner">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-red-500" />
+                  <span className="text-xs font-black text-red-500 uppercase tracking-widest">
+                    Últimos Hallazgos
+                  </span>
+                </div>
+                <div className="flex flex-col gap-3">
+                  {findings.map((f, i) => (
+                    <div key={i} className="rounded-lg border border-red-500/20 bg-background/80 p-3 shadow-sm relative overflow-hidden group">
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500/50" />
+                      <p className="text-[11px] font-bold text-foreground leading-snug mb-2 pl-1" title={f.pregunta}>
+                        {f.pregunta}
+                      </p>
+                      <div className="flex items-start gap-2 border-t border-red-500/10 pt-2 pl-1">
+                        <span className="text-red-500/80 font-serif text-lg leading-none opacity-50">"</span>
+                        <p className="text-[11px] text-red-400/90 font-medium italic flex-1">{f.observacion}</p>
+                        <span className="text-red-500/80 font-serif text-lg leading-none opacity-50">"</span>
+                      </div>
+                      <p className="text-[9px] font-bold text-right text-muted-foreground/60 mt-1 uppercase">
+                        {f.fecha.toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" })}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           ) : (
             <div className="flex flex-1 flex-col gap-3 min-h-[200px]">
@@ -341,7 +409,7 @@ export function DetailsPanel({ area }: Props) {
           )}
 
           {/* Pie del Panel */}
-          <div className="rounded-lg border border-border/50 bg-surface-zone px-3 py-2 text-center text-[10px] uppercase tracking-widest text-muted-foreground/60">
+          <div className="mt-auto shrink-0 rounded-lg border border-border/50 bg-surface-zone px-3 py-2 text-center text-[10px] uppercase tracking-widest text-muted-foreground/60 relative z-10">
             Sistema de Seguridad Industrial
           </div>
 

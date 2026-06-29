@@ -73,8 +73,6 @@ export function EvaluationHistory({ areaId }: { areaId: string }) {
     );
   }
 
-  }
-
   // Si no hay evaluaciones previas, mostrar un mensaje de estado vacío (Empty State)
   if (evaluations.length === 0) {
     return (
@@ -127,15 +125,48 @@ export function EvaluationHistory({ areaId }: { areaId: string }) {
 
             {/* Renderizado condicional de las observaciones (sólo si existen) */}
             {(() => {
-              const obsText = typeof ev.observaciones === 'object' 
+              let obsObj: Record<string, string> | null = null;
+              let obsText = "";
 
-                ? (ev.observaciones && Object.keys(ev.observaciones).length > 0 ? JSON.stringify(ev.observaciones) : null) 
-                : ev.observaciones;
-                
-              if (!obsText || obsText.toString().trim() === '') return null;
+              if (typeof ev.observaciones === 'object' && ev.observaciones !== null) {
+                obsObj = ev.observaciones;
+              } else if (typeof ev.observaciones === 'string') {
+                try {
+                  // Intentar parsear por si es un JSON stringificado
+                  const parsed = JSON.parse(ev.observaciones);
+                  if (typeof parsed === 'object' && parsed !== null) {
+                    obsObj = parsed;
+                  } else {
+                    obsText = ev.observaciones;
+                  }
+                } catch (e) {
+                  obsText = ev.observaciones;
+                }
+              }
+
+              if (obsObj && Object.keys(obsObj).length > 0) {
+                return (
+                  <div className="pl-2 mt-3 space-y-2">
+                    {Object.entries(obsObj).map(([pregunta, comentario], idx) => (
+                      <div key={idx} className="bg-background/40 p-2.5 rounded-lg border border-border/50 text-xs">
+                        <p className="font-semibold text-foreground/90 mb-1 leading-snug" title={pregunta}>
+                          {pregunta}
+                        </p>
+                        <div className="flex items-start gap-1.5 border-t border-border/30 pt-1.5">
+                          <span className="text-muted-foreground/50 font-serif text-base leading-none">"</span>
+                          <p className="text-muted-foreground/90 italic flex-1">{comentario}</p>
+                          <span className="text-muted-foreground/50 font-serif text-base leading-none">"</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              }
+
+              if (!obsText || obsText.trim() === '') return null;
               
               return (
-                <div className="pl-2">
+                <div className="pl-2 mt-3">
                   <p className="text-xs text-muted-foreground/80 leading-relaxed italic bg-black/20 p-2.5 rounded-lg border border-white/5">
                     "{obsText}"
                   </p>

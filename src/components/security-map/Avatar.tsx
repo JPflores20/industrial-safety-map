@@ -58,7 +58,6 @@ export function Avatar({ name, className = "h-8 w-8" }: { name: string; classNam
         <span className="text-[10px]">{initials}</span>
       </div>
     );
-    );
   }
 
   // Renderiza la foto en un botón que dispara el Dialog

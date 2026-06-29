@@ -89,7 +89,7 @@ function Index() {
   // Controla si mostramos el mapa, la tabla o el ranking
   const [vista, setVista] = useState<"mapa" | "tabla" | "ranking">(initialVista ?? "mapa");
   const [theme, setTheme] = useState<"dark" | "light">("dark");
-  const [sheetOpen, setSheetOpen] = useState(false); // Modal lateral para móviles
+  const [sheetOpen, setSheetOpen] = useState(!!initialArea); // Modal lateral para móviles, abierto si hay área inicial
 
   // ─── Estado de Filtros ───
   const [query, setQuery] = useState("");
@@ -189,6 +189,7 @@ function Index() {
   // Al seleccionar un área, actualizar URL y UI
   function handleSelect(id: string) {
     setSelectedId(id);
+    setSheetOpen(true);
     navigate({ search: (prev) => ({ ...prev, area: id }), resetScroll: false });
   }
 

@@ -1,5 +1,6 @@
 // ─── Importaciones de React y componentes ────────────────────────────────────
 import { useState } from "react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
   ClipboardCheck,
   Building,
@@ -178,17 +179,20 @@ export function ChecklistForm({ area, onClose, onSave }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 p-4 sm:p-6 backdrop-blur-sm">
-      <div className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+    <Dialog open={true} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent 
+        className="max-w-3xl w-full p-0 border-none bg-transparent shadow-none [&>button]:hidden flex flex-col justify-start overflow-hidden h-[100dvh] sm:h-auto sm:max-h-[95vh] left-0 top-0 translate-x-0 translate-y-0 sm:left-[50%] sm:top-[50%] sm:-translate-x-1/2 sm:-translate-y-1/2"
+      >
+        <div className="flex h-full w-full flex-col overflow-hidden sm:rounded-2xl border-0 sm:border border-border bg-card shadow-none sm:shadow-2xl">
         
         {/* ── Encabezado del Modal ── */}
-        <div className="flex items-center justify-between border-b border-border bg-surface-zone px-6 py-4">
+        <div className="flex items-start sm:items-center justify-between border-b border-border bg-surface-zone px-4 sm:px-6 py-4 gap-2">
           <div>
             <div className="flex items-center gap-2">
-              <ClipboardCheck className="h-5 w-5 text-amber-400" />
-              <h2 className="text-lg font-bold text-foreground">Evaluación de Prerrequisitos</h2>
+              <ClipboardCheck className="h-5 w-5 text-amber-400 shrink-0" />
+              <h2 className="text-base sm:text-lg font-bold text-foreground leading-tight">Evaluación de Prerrequisitos</h2>
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-[10px] sm:text-xs text-muted-foreground">
               Área: <span className="font-semibold text-foreground">{area.nombre}</span> • Resp: {area.responsable}
             </p>
           </div>
@@ -226,39 +230,39 @@ export function ChecklistForm({ area, onClose, onSave }: Props) {
                     <div key={item} className="flex flex-col gap-2 rounded-xl border border-border bg-background/40 p-3 transition-colors hover:border-border/80">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <span className="text-sm text-foreground flex-1 leading-snug text-justify pr-2">{item}</span>
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="grid grid-cols-3 sm:flex sm:items-center gap-1.5 sm:gap-2 shrink-0 w-full sm:w-auto mt-2 sm:mt-0">
                           <button
                             type="button"
                             onClick={() => handleResp(item, "cumple")}
-                            className={`flex h-8 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-all ${
+                            className={`flex h-8 sm:h-8 items-center justify-center gap-1 sm:gap-1.5 rounded-lg border px-1 sm:px-3 text-[10px] sm:text-xs font-semibold transition-all ${
                               r === "cumple" 
                                 ? "border-emerald-500/50 bg-emerald-500/20 text-emerald-400 shadow-[0_0_10px_-2px_rgba(52,211,153,0.3)]" 
                                 : "border-border bg-background/50 text-muted-foreground hover:bg-surface-zone"
                             }`}
                           >
-                            <CheckCircle2 className="h-3.5 w-3.5" /> Cumple
+                            <CheckCircle2 className="h-3 sm:h-3.5 w-3 sm:w-3.5 shrink-0" /> Cumple
                           </button>
                           <button
                             type="button"
                             onClick={() => handleResp(item, "no-cumple")}
-                            className={`flex h-8 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-all ${
+                            className={`flex h-8 sm:h-8 items-center justify-center gap-1 sm:gap-1.5 rounded-lg border px-1 sm:px-3 text-[10px] sm:text-xs font-semibold transition-all ${
                               r === "no-cumple" 
                                 ? "border-red-500/50 bg-red-500/20 text-red-400 shadow-[0_0_10px_-2px_rgba(248,113,113,0.3)]" 
                                 : "border-border bg-background/50 text-muted-foreground hover:bg-surface-zone"
                             }`}
                           >
-                            <XCircle className="h-3.5 w-3.5" /> No Cumple
+                            <XCircle className="h-3 sm:h-3.5 w-3 sm:w-3.5 shrink-0" /> No Cumple
                           </button>
                           <button
                             type="button"
                             onClick={() => handleResp(item, "na")}
-                            className={`flex h-8 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-all ${
+                            className={`flex h-8 sm:h-8 items-center justify-center gap-1 sm:gap-1.5 rounded-lg border px-1 sm:px-3 text-[10px] sm:text-xs font-semibold transition-all ${
                               r === "na" 
                                 ? "border-slate-500/50 bg-slate-500/20 text-slate-300" 
                                 : "border-border bg-background/50 text-muted-foreground hover:bg-surface-zone"
                             }`}
                           >
-                            <MinusCircle className="h-3.5 w-3.5" /> N/A
+                            <MinusCircle className="h-3 sm:h-3.5 w-3 sm:w-3.5 shrink-0" /> N/A
                           </button>
                         </div>
                       </div>
@@ -284,14 +288,14 @@ export function ChecklistForm({ area, onClose, onSave }: Props) {
         </div>
 
         {/* ── Pie del Modal: Puntuación Final y Botón de Guardar ── */}
-        <div className="flex items-center justify-between border-t border-border bg-surface-zone px-6 py-4">
-          <div className="flex flex-col">
-            <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Cumplimiento Calculado</span>
-            <div className="flex items-end gap-2">
-              <span className={`text-3xl font-black leading-none ${getStatusColor(percent)}`}>
+        <div className="flex flex-col sm:flex-row items-center justify-between border-t border-border bg-surface-zone px-4 sm:px-6 py-4 gap-4">
+          <div className="flex flex-col items-center sm:items-start text-center sm:text-left w-full sm:w-auto">
+            <span className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-semibold">Cumplimiento Calculado</span>
+            <div className="flex items-end justify-center sm:justify-start gap-2 mt-1 sm:mt-0">
+              <span className={`text-2xl sm:text-3xl font-black leading-none ${getStatusColor(percent)}`}>
                 {percent}%
               </span>
-              <span className="text-xs text-muted-foreground mb-1">
+              <span className="text-[10px] sm:text-xs text-muted-foreground mb-1">
                 ({totalComply}/{totalApplicable} aplicables)
               </span>
             </div>
@@ -301,7 +305,7 @@ export function ChecklistForm({ area, onClose, onSave }: Props) {
             type="button"
             onClick={() => onSave({ evaluador: evaluador.trim(), cumplimiento: percent, respuestas: respuestas as any, observaciones })}
             disabled={!isComplete}
-            className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold transition-all ${
+            className={`flex items-center justify-center w-full sm:w-auto gap-2 rounded-xl px-5 py-2.5 text-sm font-bold transition-all ${
               isComplete 
                 ? "bg-amber-500 text-amber-950 hover:bg-amber-400 hover:shadow-[0_0_15px_-3px_rgba(251,191,36,0.5)]" 
                 : "bg-surface-plant text-muted-foreground cursor-not-allowed border border-border/50"
@@ -312,6 +316,7 @@ export function ChecklistForm({ area, onClose, onSave }: Props) {
           </button>
         </div>
       </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
