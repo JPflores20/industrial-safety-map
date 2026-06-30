@@ -29,23 +29,14 @@ import {
   Target,
 } from "lucide-react";
 import {
-  areas,
   getRiskCategory,
   RISK_CATEGORIES,
   getMaxRiskLevel,
   TEAM_META,
   DEFAULT_TEAM_META,
   KPI_MENSUAL,
+  type Area,
 } from "./data";
-
-// ─── Estadísticas Precalculadas (Derivadas de los datos estáticos) ─────────────
-// Se calculan globalmente una sola vez en lugar de hacerlo en cada renderizado
-const allRisks = areas.flatMap((a) => a.riesgos); // Todos los riesgos en un solo arreglo
-const totalAreas = areas.length;
-const uniqueRisks = new Set(allRisks).size; // Número de riesgos sin duplicados
-const totalTeams = new Set(areas.map((a) => a.equipo)).size;
-const dangerCount = areas.filter((a) => getMaxRiskLevel(a.riesgos) === "danger").length; // Áreas en estado "danger"
-const vencidoCount = areas.filter((a) => a.estado === "vencido").length; // Áreas vencidas
 
 // ─── Estilos comunes para los tooltips de las gráficas ───────────────────────
 const chartTooltipStyle = {
@@ -60,9 +51,22 @@ type Tab = "general" | "kpi"; // Pestañas disponibles en el panel
 
 // ─── Componente Principal StatsPanel ─────────────────────────────────────────
 // Muestra el panel desplegable superior con estadísticas generales y gráficas de KPI
-export function StatsPanel() {
+export function StatsPanel({ areas }: { areas: Area[] }) {
   const [open, setOpen] = useState(false); // Estado para abrir/cerrar el panel
   const [tab, setTab] = useState<Tab>("general"); // Pestaña actual activa
+
+  // ─── Estadísticas Computadas ─────────────
+  const { allRisks, totalAreas, uniqueRisks, totalTeams, dangerCount, vencidoCount } = useMemo(() => {
+    const allRisks = areas.flatMap((a) => a.riesgos);
+    return {
+      allRisks,
+      totalAreas: areas.length,
+      uniqueRisks: new Set(allRisks).size,
+      totalTeams: new Set(areas.map((a) => a.equipo)).size,
+      dangerCount: areas.filter((a) => getMaxRiskLevel(a.riesgos) === "danger").length,
+      vencidoCount: areas.filter((a) => (a as any).estado === "vencido").length, // 'estado' is no longer in type Area
+    };
+  }, [areas]);
 
   // Memoización de los datos de categoría de riesgos para la gráfica de barras
   const riskCategoryData = useMemo(
@@ -72,7 +76,7 @@ export function StatsPanel() {
         count: allRisks.filter((r) => getRiskCategory(r) === cat.id).length,
         fill: cat.hex,
       })),
-    []
+    [allRisks]
   );
 
   // Memoización de la distribución de equipos para la gráfica de pastel (Pie chart)
@@ -83,7 +87,7 @@ export function StatsPanel() {
         value: areas.filter((a) => a.equipo === equipo).length,
         fill: (TEAM_META[equipo] ?? DEFAULT_TEAM_META).hex,
       })),
-    []
+    [areas]
   );
 
   // ─── Cálculos de KPI (Derivados de datos estáticos mensuales) ────────────

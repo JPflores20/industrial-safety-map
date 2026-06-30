@@ -1,5 +1,5 @@
 // ─── Importaciones de React, Iconos y Datos ─────────────────────────────────
-import { useState } from "react";
+import { useState } from "react"; // Cache bust
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { getMaxRiskLevel, ESTADO_META, getAreaStatus, type Area } from "./data";
 import { Avatar } from "./Avatar";

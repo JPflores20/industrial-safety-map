@@ -23,12 +23,13 @@ import { TableView } from "@/components/security-map/TableView";
 import { StatsPanel } from "@/components/security-map/StatsPanel";
 import { RankingView } from "@/components/security-map/RankingView";
 import {
-  areas,
+  cocimientosAreas,
   getRiskCategory,
   getAreaStatus,
   type RiskCategory,
   type EstadoArea,
 } from "@/components/security-map/data";
+import { bloqueFrioAreas } from "@/components/security-map/bloqueFrioData";
 import { exportCSV, exportPDF } from "@/lib/export";
 import {
   Sheet,
@@ -49,10 +50,12 @@ export const Route = createFileRoute("/")({
   // Tipado y validación de los parámetros de búsqueda en la URL
   validateSearch: (
     search: Record<string, unknown>
-  ): { area?: string; vista?: "mapa" | "tabla" | "ranking" } => ({
+  ): { area?: string; vista?: "mapa" | "tabla" | "ranking"; seccion?: "cocimientos" | "bloqueFrio" } => ({
     area: typeof search.area === "string" ? search.area : undefined,
     vista:
       search.vista === "tabla" ? "tabla" : search.vista === "ranking" ? "ranking" : search.vista === "mapa" ? "mapa" : undefined,
+    seccion:
+      search.seccion === "bloqueFrio" ? "bloqueFrio" : search.seccion === "cocimientos" ? "cocimientos" : undefined,
   }),
   head: () => ({
     meta: [
@@ -79,7 +82,7 @@ export const Route = createFileRoute("/")({
 // ─── Componente Principal de la Vista Principal ────────────────────────────────
 function Index() {
   // Extrae la búsqueda inicial de la URL (qué área y vista seleccionar)
-  const { area: initialArea, vista: initialVista } = Route.useSearch();
+  const { area: initialArea, vista: initialVista, seccion: initialSeccion } = Route.useSearch();
   const navigate = useNavigate({ from: "/" });
 
   // ─── Estado Local (UI) ───
@@ -88,8 +91,16 @@ function Index() {
   );
   // Controla si mostramos el mapa, la tabla o el ranking
   const [vista, setVista] = useState<"mapa" | "tabla" | "ranking">(initialVista ?? "mapa");
+  const [seccion, setSeccion] = useState<"cocimientos" | "bloqueFrio">(initialSeccion ?? "cocimientos");
   const [theme, setTheme] = useState<"dark" | "light">("dark");
-  const [sheetOpen, setSheetOpen] = useState(!!initialArea); // Modal lateral para móviles, abierto si hay área inicial
+  const [sheetOpen, setSheetOpen] = useState(() => {
+    if (typeof window !== "undefined") {
+      return !!initialArea && window.innerWidth < 1024;
+    }
+    return !!initialArea;
+  });
+
+  const baseAreas = seccion === "cocimientos" ? cocimientosAreas : bloqueFrioAreas;
 
   // ─── Estado de Filtros ───
   const [query, setQuery] = useState("");
@@ -103,46 +114,52 @@ function Index() {
   const [activeTerritorios, setActiveTerritorios] = useState<Set<string>>(new Set());
 
   // ─── Áreas Dinámicas (Desde Firebase) ───
-  const [dynamicAreas, setDynamicAreas] = useState(areas);
+  const [evaluacionesMap, setEvaluacionesMap] = useState<Map<string, string>>(new Map());
 
   // Suscripción a Firebase para mantener las fechas de inspección actualizadas en tiempo real
   useEffect(() => {
     const q = firestoreQuery(collection(db, "evaluaciones"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      // Encontrar la evaluación más reciente para cada área
-      const latestByArea = new Map<string, Date>();
-
+      const latestByArea = new Map<string, string>();
       
       snapshot.docs.forEach((doc) => {
         const data = doc.data();
         const fecha = data.fecha?.toDate();
         if (fecha && data.areaId) {
-          const currentLatest = latestByArea.get(data.areaId);
+          const currentLatestStr = latestByArea.get(data.areaId);
+          const currentLatest = currentLatestStr ? new Date(currentLatestStr) : null;
+          
           if (!currentLatest || fecha > currentLatest) {
-            latestByArea.set(data.areaId, fecha);
+            const localDate = new Date(fecha.getTime() - fecha.getTimezoneOffset() * 60000);
+            latestByArea.set(data.areaId, localDate.toISOString().split('T')[0]);
           }
         }
       });
       
-      // Update areas
-      setDynamicAreas(areas.map(a => {
-        const latest = latestByArea.get(a.id);
-        if (latest) {
-          // Ajustamos la fecha localmente para evitar desfases horarios UTC
-          const localDate = new Date(latest.getTime() - latest.getTimezoneOffset() * 60000);
-          return {
-            ...a,
-            ultimaInspeccion: localDate.toISOString().split('T')[0]
-          };
-        }
-        return {
-          ...a,
-          ultimaInspeccion: ""
-        };
-      }));
+      setEvaluacionesMap(latestByArea);
     });
     return () => unsubscribe();
   }, []);
+
+  // Cierra el Sheet automáticamente si la pantalla cambia a tamaño de escritorio
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mql = window.matchMedia("(min-width: 1024px)");
+    const onChange = (e: MediaQueryListEvent) => {
+      if (e.matches) {
+        setSheetOpen(false);
+      }
+    };
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+
+  const dynamicAreas = useMemo(() => {
+    return baseAreas.map(a => ({
+      ...a,
+      ultimaInspeccion: evaluacionesMap.get(a.id) || "",
+    }));
+  }, [baseAreas, evaluacionesMap]);
 
   // ─── Filtrado de Áreas Computado ───
   // Calcula qué áreas mostrar de acuerdo a la barra de búsqueda y filtros seleccionados
@@ -189,7 +206,9 @@ function Index() {
   // Al seleccionar un área, actualizar URL y UI
   function handleSelect(id: string) {
     setSelectedId(id);
-    setSheetOpen(true);
+    if (typeof window !== "undefined" && window.innerWidth < 1024) {
+      setSheetOpen(true);
+    }
     navigate({ search: (prev) => ({ ...prev, area: id }), resetScroll: false });
   }
 
@@ -197,6 +216,15 @@ function Index() {
   function handleVistaChange(v: "mapa" | "tabla" | "ranking") {
     setVista(v);
     navigate({ search: (prev) => ({ ...prev, vista: v }), resetScroll: false });
+  }
+
+  function handleSeccionChange(s: "cocimientos" | "bloqueFrio") {
+    if (s === seccion) return;
+    clearAll();
+    setSelectedId(null);
+    setSheetOpen(false);
+    setSeccion(s);
+    navigate({ search: (prev) => ({ ...prev, seccion: s, area: undefined }), resetScroll: false });
   }
 
   // Funciones para encender/apagar (Toggle) los diferentes filtros
@@ -273,9 +301,25 @@ function Index() {
               </h1>
               <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Activity className="h-3 w-3 text-green-400" />
-                {areas.length} áreas · Sistema activo
+                {baseAreas.length} áreas · Sistema activo
               </p>
             </div>
+          </div>
+
+          {/* ── Selector de Sección (Bloque Frío / Cocimientos) ── */}
+          <div className="hidden md:flex bg-surface-zone border border-border rounded-lg p-1">
+            <button
+              onClick={() => handleSeccionChange("cocimientos")}
+              className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-all ${seccion === "cocimientos" ? "bg-amber-500 text-black shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              Cocimientos
+            </button>
+            <button
+              onClick={() => handleSeccionChange("bloqueFrio")}
+              className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-all ${seccion === "bloqueFrio" ? "bg-blue-500 text-white shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              Bloque Frío
+            </button>
           </div>
 
           {/* ── Botones de Acción (Vistas y Configuración) ── */}
@@ -338,14 +382,15 @@ function Index() {
       <main className="mx-auto max-w-7xl space-y-4 px-6 py-6">
         {/* Renderizado condicional según la vista actual */}
         {vista === "ranking" ? (
-          <RankingView />
+          <RankingView areas={dynamicAreas} />
         ) : (
           <>
             {/* ── Panel de Estadísticas Colapsable ── */}
-            <StatsPanel />
+            <StatsPanel areas={dynamicAreas} />
 
             {/* ── Barra de Filtros ── */}
             <FilterBar
+              areas={dynamicAreas}
               query={query}
               onQueryChange={setQuery}
               activeEquipos={activeEquipos}

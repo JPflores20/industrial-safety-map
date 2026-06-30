@@ -1,10 +1,10 @@
 // ─── Importaciones de librerías y componentes ────────────────────────────────
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react"; // Cache bust
 import confetti from "canvas-confetti"; // Para animación de celebración
 import { collection, query, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase"; // Configuración de base de datos
 import { Loader2, Target, Trophy, Crown, AlertTriangle } from "lucide-react"; // Iconos UI
-import { areas, getAreaStatus, ESTADO_META, type EstadoArea } from "./data";
+import { getAreaStatus, ESTADO_META, type EstadoArea, type Area } from "./data";
 import { Avatar } from "./Avatar";
 import { TeamLogo } from "./TeamLogo";
 
@@ -46,7 +46,7 @@ const teamLeaders: Record<string, string> = {
 
 // ─── Componente Principal RankingView ────────────────────────────────────────
 // Muestra una tabla de posiciones con el promedio de cumplimiento de cada área
-export function RankingView() {
+export function RankingView({ areas }: { areas: Area[] }) {
   const [rankings, setRankings] = useState<AreaRanking[]>([]);
   const [topFindings, setTopFindings] = useState<FindingRanking[]>([]);
   const [loading, setLoading] = useState(true); // Estado de carga de datos
@@ -157,7 +157,7 @@ export function RankingView() {
 
     // Limpiar suscripción al desmontar
     return () => unsubscribe();
-  }, [selectedMonth]);
+  }, [selectedMonth, areas]);
 
   // Obtener la mejor y peor área del ranking
   const bestArea = rankings.length > 0 && rankings[0].promedio > 0 ? rankings[0] : null;

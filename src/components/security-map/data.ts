@@ -39,7 +39,7 @@ export function getAreaStatus(ultimaInspeccion: string): EstadoArea {
   }
 }
 
-export const areas: Area[] = [
+export const cocimientosAreas: Area[] = [
   { id: "lobby-recepcion", nombre: "Lobby Recepción", responsable: "HUGO ALBERTO CARDONA ESPINOZA", equipo: "LOS PANCHITOS", riesgos: ["Caídas a desnivel"], territorio: "Zona Norte", ultimaInspeccion: "", proximaInspeccion: "" },
   { id: "planta-baja-c-1-y-2", nombre: "Planta baja C 1 Y 2", responsable: "EDGAR ZAMARRON ACOSTA", equipo: "MASH-RAINBOW", riesgos: ["Superficies calientes", "Ruido"], territorio: "Zona Sur", ultimaInspeccion: "", proximaInspeccion: "" },
   { id: "cuarto-de-bombas", nombre: "Cuarto de bombas", responsable: "JAIME LOPEZ CHAVEZ", equipo: "MASH-RAINBOW", riesgos: ["Riesgo Eléctrico", "Objetos a baja altura", "Corriente estática"], territorio: "Zona Este", ultimaInspeccion: "", proximaInspeccion: "" },
@@ -244,6 +244,33 @@ export const TEAM_META: Record<
     dot: "bg-amber-400",
     border: "border-amber-500/20",
     header: "text-amber-400 border-amber-500/30",
+  },
+  "LOS FUERTES DEL FRIO": {
+    color: "text-blue-400",
+    hex: "#60a5fa",
+    activeChip: "border-blue-400 bg-blue-400/20 text-blue-300",
+    inactiveChip: "border-border text-muted-foreground hover:border-blue-400/50",
+    dot: "bg-blue-400",
+    border: "border-blue-500/20",
+    header: "text-blue-400 border-blue-500/30",
+  },
+  "MONTSE Y SUS FERMENTADORES": {
+    color: "text-pink-400",
+    hex: "#f472b6",
+    activeChip: "border-pink-400 bg-pink-400/20 text-pink-300",
+    inactiveChip: "border-border text-muted-foreground hover:border-pink-400/50",
+    dot: "bg-pink-400",
+    border: "border-pink-500/20",
+    header: "text-pink-400 border-pink-500/30",
+  },
+  "LOS CHAMBINES DE FERMENTACIÓN": {
+    color: "text-lime-400",
+    hex: "#a3e635",
+    activeChip: "border-lime-400 bg-lime-400/20 text-lime-300",
+    inactiveChip: "border-border text-muted-foreground hover:border-lime-400/50",
+    dot: "bg-lime-400",
+    border: "border-lime-500/20",
+    header: "text-lime-400 border-lime-500/30",
   },
 };
 

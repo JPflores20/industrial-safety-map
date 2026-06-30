@@ -1,5 +1,5 @@
 // ─── Importaciones y Componentes ──────────────────────────────────────────────
-import { useMemo } from "react";
+import { useMemo } from "react"; // Cache bust
 import { Search, X, SlidersHorizontal } from "lucide-react";
 import {
   Select,
@@ -9,23 +9,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  areas,
   RISK_CATEGORIES,
   TEAM_META,
   DEFAULT_TEAM_META,
   ESTADO_META,
   type RiskCategory,
   type EstadoArea,
+  type Area,
 } from "./data";
-
-
-// ─── Datos Estáticos Únicos para Filtros ──────────────────────────────────────
-const ALL_TEAMS = [...new Set(areas.map((a) => a.equipo))]; // Todos los equipos (Team) únicos
-const ALL_ESTADOS: EstadoArea[] = ["al-dia", "pendiente", "retrasado"]; // Estados posibles
-const ALL_TERRITORIOS = [...new Set(areas.map((a) => a.territorio))].sort(); // Territorios ordenados alfabéticamente
 
 // ─── Propiedades del Componente FilterBar ─────────────────────────────────────
 interface Props {
+  areas: Area[]; // Áreas a filtrar
   query: string; // Texto de búsqueda
   onQueryChange: (q: string) => void;
   activeEquipos: Set<string>; // Filtros de equipo activos
@@ -43,9 +38,8 @@ interface Props {
 }
 
 // ─── Componente Principal FilterBar ──────────────────────────────────────────
-// Barra superior de la aplicación donde el usuario puede filtrar las áreas mostradas
-// en el mapa y la tabla, mediante búsqueda por texto o botones de múltiples categorías
 export function FilterBar({
+  areas,
   query,
   onQueryChange,
   activeEquipos,
@@ -61,6 +55,11 @@ export function FilterBar({
   totalVisible,
   onClearAll,
 }: Props) {
+  // ─── Datos Dinámicos Únicos para Filtros ──────────────────────────────────────
+  const ALL_TEAMS = useMemo(() => [...new Set(areas.map((a) => a.equipo))], [areas]);
+  const ALL_ESTADOS: EstadoArea[] = ["al-dia", "pendiente", "retrasado"];
+  const ALL_TERRITORIOS = useMemo(() => [...new Set(areas.map((a) => a.territorio))].sort(), [areas]);
+
   // Comprueba si existe al menos un filtro activo (para mostrar el botón de limpiar)
   const hasFilters =
     !!query.trim() ||
@@ -73,7 +72,7 @@ export function FilterBar({
   // Memoiza y ordena alfabéticamente la lista de responsables para el Select
   const responsables = useMemo(
     () => [...new Set(areas.map((a) => a.responsable))].sort(),
-    []
+    [areas]
   );
 
   return (
