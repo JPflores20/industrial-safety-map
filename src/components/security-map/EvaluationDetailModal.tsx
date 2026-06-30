@@ -216,29 +216,29 @@ export function EvaluationDetailModal({ evaluation, areaNombre, onClose }: Props
           </div>
 
         </div>
-      </DialogContent>
 
-      {/* Lightbox para previsualizar imágenes a pantalla completa */}
-      {activeImageUrl && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 transition-all animate-in fade-in duration-200"
-          onClick={() => setActiveImageUrl(null)}
-        >
-          <button
-            type="button"
-            className="absolute right-4 top-4 rounded-full bg-black/60 p-2 text-white hover:bg-black/85 cursor-pointer"
+        {/* Lightbox para previsualizar imágenes a pantalla completa */}
+        {activeImageUrl && (
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 transition-all animate-in fade-in duration-200"
             onClick={() => setActiveImageUrl(null)}
           >
-            <X className="h-6 w-6" />
-          </button>
-          <img
-            src={activeImageUrl}
-            alt="Hallazgo Ampliado"
-            className="max-h-[90vh] max-w-[95vw] rounded-lg object-contain shadow-2xl animate-in zoom-in-95 duration-200"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      )}
+            <button
+              type="button"
+              className="absolute right-4 top-4 rounded-full bg-black/60 p-2 text-white hover:bg-black/85 cursor-pointer"
+              onClick={() => setActiveImageUrl(null)}
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <img
+              src={activeImageUrl}
+              alt="Hallazgo Ampliado"
+              className="max-h-[90vh] max-w-[95vw] rounded-lg object-contain shadow-2xl animate-in zoom-in-95 duration-200"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        )}
+      </DialogContent>
     </Dialog>
   );
 }

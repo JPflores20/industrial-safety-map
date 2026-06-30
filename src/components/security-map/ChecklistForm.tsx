@@ -1,6 +1,7 @@
 // ─── Importaciones de React y componentes ────────────────────────────────────
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { toast } from "sonner";
 import {
   ClipboardCheck,
   Building,
@@ -129,10 +130,82 @@ type Res = "cumple" | "no-cumple" | "na" | null;
 // ─── Componente Principal ChecklistForm ──────────────────────────────────────
 // Formulario modal para realizar la evaluación de un área basada en preguntas (ítems)
 export function ChecklistForm({ area, onClose, onSave }: Props) {
-  const [evaluador, setEvaluador] = useState("");
-  const [respuestas, setRespuestas] = useState<Record<string, Res>>({});
-  const [observaciones, setObservaciones] = useState<Record<string, string>>({});
-  const [imagenes, setImagenes] = useState<Record<string, string[]>>({});
+  const [evaluador, setEvaluador] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem(`safety_audit_draft_${area.id}`);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          return parsed.evaluador || "";
+        } catch (e) {}
+      }
+    }
+    return "";
+  });
+
+  const [respuestas, setRespuestas] = useState<Record<string, Res>>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem(`safety_audit_draft_${area.id}`);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          return parsed.respuestas || {};
+        } catch (e) {}
+      }
+    }
+    return {};
+  });
+
+  const [observaciones, setObservaciones] = useState<Record<string, string>>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem(`safety_audit_draft_${area.id}`);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          return parsed.observaciones || {};
+        } catch (e) {}
+      }
+    }
+    return {};
+  });
+
+  const [imagenes, setImagenes] = useState<Record<string, string[]>>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem(`safety_audit_draft_${area.id}`);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          return parsed.imagenes || {};
+        } catch (e) {}
+      }
+    }
+    return {};
+  });
+
+  // Guardar borrador en localStorage cuando cambie algún dato
+  useEffect(() => {
+    const draft = {
+      evaluador,
+      respuestas,
+      observaciones,
+      imagenes,
+    };
+    localStorage.setItem(`safety_audit_draft_${area.id}`, JSON.stringify(draft));
+  }, [evaluador, respuestas, observaciones, imagenes, area.id]);
+
+  // Limpiar el borrador manualmente
+  const handleResetDraft = () => {
+    if (window.confirm("¿Estás seguro de que quieres limpiar el progreso de esta evaluación y empezar de cero?")) {
+      setEvaluador("");
+      setRespuestas({});
+      setObservaciones({});
+      setImagenes({});
+      localStorage.removeItem(`safety_audit_draft_${area.id}`);
+      toast.info("Borrador eliminado", {
+        description: "Se ha reiniciado el progreso de la evaluación.",
+      });
+    }
+  };
 
   // Maneja el click en los botones de cumple/no-cumple/na para cada pregunta
   const handleResp = (itemId: string, res: Res) => {
@@ -205,13 +278,25 @@ export function ChecklistForm({ area, onClose, onSave }: Props) {
               Área: <span className="font-semibold text-foreground">{area.nombre}</span> • Resp: {area.responsable}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-full p-2 text-muted-foreground hover:bg-background/50 hover:text-foreground transition-colors"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            {(evaluador || Object.keys(respuestas).length > 0) && (
+              <button
+                type="button"
+                onClick={handleResetDraft}
+                className="text-[10px] sm:text-xs font-bold text-red-400 hover:text-red-300 hover:bg-red-500/10 px-2.5 py-1.5 rounded-lg border border-red-500/20 transition-all mr-1 cursor-pointer"
+                title="Borrar borrador actual y empezar de cero"
+              >
+                Limpiar Progreso
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-full p-2 text-muted-foreground hover:bg-background/50 hover:text-foreground transition-colors cursor-pointer"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         {/* ── Campo del Nombre del Evaluador ── */}
@@ -318,13 +403,16 @@ export function ChecklistForm({ area, onClose, onSave }: Props) {
           
           <button
             type="button"
-            onClick={() => onSave({ 
-              evaluador: evaluador.trim(), 
-              cumplimiento: percent, 
-              respuestas: respuestas as any, 
-              observaciones, 
-              imagenes 
-            })}
+            onClick={() => {
+              onSave({ 
+                evaluador: evaluador.trim(), 
+                cumplimiento: percent, 
+                respuestas: respuestas as any, 
+                observaciones, 
+                imagenes 
+              });
+              localStorage.removeItem(`safety_audit_draft_${area.id}`);
+            }}
             disabled={!isComplete}
             className={`flex items-center justify-center w-full sm:w-auto gap-2 rounded-xl px-5 py-2.5 text-sm font-bold transition-all ${
               isComplete 
