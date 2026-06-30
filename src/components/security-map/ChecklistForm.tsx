@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import type { Area } from "./data";
+import { CloudinaryUpload } from "./CloudinaryUpload";
 
 
 // ─── Interfaces de Datos ─────────────────────────────────────────────────────
@@ -24,6 +25,7 @@ export interface EvaluationData {
   cumplimiento: number; // Porcentaje final calculado
   respuestas: Record<string, "cumple" | "no-cumple" | "na">; // Respuestas por cada ítem
   observaciones: Record<string, string>; // Comentarios adicionales en caso de "no-cumple"
+  imagenes?: Record<string, string[]>; // URLs de imágenes asociadas a cada hallazgo
 }
 
 // Propiedades que recibe el componente ChecklistForm
@@ -35,7 +37,7 @@ interface Props {
 
 // ─── Configuración de Categorías del Checklist ───────────────────────────────
 // Contiene las diferentes secciones de la auditoría y sus preguntas correspondientes
-const CATEGORIAS = [
+export const CATEGORIAS = [
   {
     id: "infra",
     title: "Infraestructura y Mantenimiento",
@@ -130,6 +132,7 @@ export function ChecklistForm({ area, onClose, onSave }: Props) {
   const [evaluador, setEvaluador] = useState("");
   const [respuestas, setRespuestas] = useState<Record<string, Res>>({});
   const [observaciones, setObservaciones] = useState<Record<string, string>>({});
+  const [imagenes, setImagenes] = useState<Record<string, string[]>>({});
 
   // Maneja el click en los botones de cumple/no-cumple/na para cada pregunta
   const handleResp = (itemId: string, res: Res) => {
@@ -137,6 +140,12 @@ export function ChecklistForm({ area, onClose, onSave }: Props) {
     if (res !== "no-cumple") {
       // Limpia la observación si la respuesta se cambia a algo distinto de "no-cumple"
       setObservaciones((prev) => {
+        const copy = { ...prev };
+        delete copy[itemId];
+        return copy;
+      });
+      // También limpia las imágenes si la respuesta se cambia
+      setImagenes((prev) => {
         const copy = { ...prev };
         delete copy[itemId];
         return copy;
@@ -269,13 +278,19 @@ export function ChecklistForm({ area, onClose, onSave }: Props) {
                       
                       {/* Campo de observación que aparece sólo cuando se marca "No Cumple" */}
                       {r === "no-cumple" && (
-                        <div className="mt-2 pl-2 border-l-2 border-red-500/30">
+                        <div className="mt-2 pl-2 border-l-2 border-red-500/30 space-y-3">
                           <input
                             type="text"
                             placeholder="Describa el hallazgo u observación..."
                             value={observaciones[item] || ""}
                             onChange={(e) => handleObs(item, e.target.value)}
                             className="w-full bg-background/50 border border-red-500/20 rounded-md px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/20"
+                          />
+                          <CloudinaryUpload
+                            images={imagenes[item] || []}
+                            onImagesChange={(urls) => {
+                              setImagenes((prev) => ({ ...prev, [item]: urls }));
+                            }}
                           />
                         </div>
                       )}
@@ -303,7 +318,13 @@ export function ChecklistForm({ area, onClose, onSave }: Props) {
           
           <button
             type="button"
-            onClick={() => onSave({ evaluador: evaluador.trim(), cumplimiento: percent, respuestas: respuestas as any, observaciones })}
+            onClick={() => onSave({ 
+              evaluador: evaluador.trim(), 
+              cumplimiento: percent, 
+              respuestas: respuestas as any, 
+              observaciones, 
+              imagenes 
+            })}
             disabled={!isComplete}
             className={`flex items-center justify-center w-full sm:w-auto gap-2 rounded-xl px-5 py-2.5 text-sm font-bold transition-all ${
               isComplete 

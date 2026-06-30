@@ -13,6 +13,7 @@ export interface Area {
   territorio: string; // Zona física a la que pertenece
   ultimaInspeccion: string; // Fecha de última inspección (YYYY-MM-DD)
   proximaInspeccion: string; // Fecha estimada para la siguiente
+  ultimaCalificacion?: number; // Calificación de la última inspección
 }
 
 

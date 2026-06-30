@@ -93,12 +93,23 @@ function Index() {
   const [vista, setVista] = useState<"mapa" | "tabla" | "ranking">(initialVista ?? "mapa");
   const [seccion, setSeccion] = useState<"cocimientos" | "bloqueFrio">(initialSeccion ?? "cocimientos");
   const [theme, setTheme] = useState<"dark" | "light">("dark");
-  const [sheetOpen, setSheetOpen] = useState(() => {
-    if (typeof window !== "undefined") {
-      return !!initialArea && window.innerWidth < 1024;
+  const [sheetOpen, setSheetOpen] = useState(false); // Modal lateral para móviles
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 1024);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobile) {
+      setSheetOpen(false);
+    } else if (initialArea) {
+      setSheetOpen(true);
     }
-    return !!initialArea;
-  });
+  }, [isMobile, initialArea]);
 
   const baseAreas = seccion === "cocimientos" ? cocimientosAreas : bloqueFrioAreas;
 
@@ -203,10 +214,9 @@ function Index() {
 
   // ─── Manejadores de Eventos (Handlers) ───
   
-  // Al seleccionar un área, actualizar URL y UI
   function handleSelect(id: string) {
     setSelectedId(id);
-    if (typeof window !== "undefined" && window.innerWidth < 1024) {
+    if (isMobile) {
       setSheetOpen(true);
     }
     navigate({ search: (prev) => ({ ...prev, area: id }), resetScroll: false });

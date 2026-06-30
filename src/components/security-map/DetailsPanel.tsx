@@ -18,6 +18,7 @@ import {
   ListChecks,
   FileText,
   ClipboardCheck,
+  X,
 } from "lucide-react";
 import { classifyRisk, type Area, type RiskLevel, ESTADO_META, getAreaStatus } from "./data";
 import { getRiskControl } from "./riskControls";
@@ -154,12 +155,19 @@ function RiskItem({ riesgo }: { riesgo: string }) {
   );
 }
 
-// ─── Componente Principal DetailsPanel ──────────────────────────────────────
+interface Finding {
+  pregunta: string;
+  observacion: string;
+  fecha: Date;
+  imagenes?: string[];
+}
+
 // Muestra el panel lateral de detalles de un área (responsable, riesgos, historial)
 export function DetailsPanel({ area }: Props) {
   const [showChecklist, setShowChecklist] = useState(false); // Modal de evaluación
   const [activeTab, setActiveTab] = useState<"detalles" | "historial">("detalles"); // Pestañas
-  const [findings, setFindings] = useState<{ pregunta: string; observacion: string; fecha: Date }[]>([]);
+  const [findings, setFindings] = useState<Finding[]>([]);
+  const [activeImageUrl, setActiveImageUrl] = useState<string | null>(null); // Lightbox para imágenes
 
   // Hook para cargar los últimos 3 hallazgos del área
   useEffect(() => {
@@ -174,7 +182,7 @@ export function DetailsPanel({ area }: Props) {
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      let allFindings: { pregunta: string; observacion: string; fecha: Date }[] = [];
+      let allFindings: Finding[] = [];
       
       for (const doc of snapshot.docs) {
         const data = doc.data();
@@ -184,6 +192,7 @@ export function DetailsPanel({ area }: Props) {
               allFindings.push({
                 pregunta,
                 observacion: data.observaciones[pregunta] as string,
+                imagenes: data.imagenes?.[pregunta] || [],
                 fecha: data.fecha?.toDate() || new Date()
               });
             }
@@ -214,6 +223,7 @@ export function DetailsPanel({ area }: Props) {
         cumplimiento: data.cumplimiento,
         respuestas: data.respuestas,
         observaciones: data.observaciones,
+        imagenes: data.imagenes || {},
         fecha: serverTimestamp(),
       });
       
@@ -235,7 +245,7 @@ export function DetailsPanel({ area }: Props) {
   return (
     <aside
       aria-live="polite"
-      className="flex flex-col gap-5 rounded-2xl border border-border bg-card p-6 shadow-lg overflow-y-auto max-h-[calc(100vh-100px)]"
+      className="flex flex-col rounded-2xl border border-border bg-card p-6 shadow-lg h-[calc(100vh-100px)] overflow-hidden"
     >
       {!area ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-4 py-16 text-center text-muted-foreground">
@@ -248,8 +258,11 @@ export function DetailsPanel({ area }: Props) {
         </div>
       ) : (
         <>
-          {/* Header */}
-          <header className="space-y-1">
+          <div className="flex flex-col flex-1 min-h-0">
+            {/* Contenedor scrollable de detalles */}
+            <div className="flex-1 overflow-y-auto space-y-5 pr-1 min-h-0 pb-1">
+            {/* Header */}
+            <header className="space-y-1">
             <p className="text-[10px] font-bold uppercase tracking-widest text-amber-400/80">
               Área seleccionada
             </p>
@@ -393,7 +406,28 @@ export function DetailsPanel({ area }: Props) {
                         <p className="text-[11px] text-red-400/90 font-medium italic flex-1">{f.observacion}</p>
                         <span className="text-red-500/80 font-serif text-lg leading-none opacity-50">"</span>
                       </div>
-                      <p className="text-[9px] font-bold text-right text-muted-foreground/60 mt-1 uppercase">
+                      
+                      {/* Fotos del hallazgo (Miniaturas) */}
+                      {f.imagenes && f.imagenes.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-2 pl-1 border-t border-red-500/10 pt-2">
+                          {f.imagenes.map((imgUrl, imgIdx) => (
+                            <button
+                              key={imgIdx}
+                              type="button"
+                              onClick={() => setActiveImageUrl(imgUrl)}
+                              className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md border border-border bg-background/50 hover:opacity-85 active:scale-95 transition-all cursor-zoom-in"
+                            >
+                              <img
+                                src={imgUrl.replace("/upload/", "/upload/w_100,h_100,c_fill,q_auto,f_auto/")}
+                                alt={`Hallazgo ${imgIdx + 1}`}
+                                className="h-full w-full object-cover"
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      <p className="text-[9px] font-bold text-right text-muted-foreground/60 mt-1.5 uppercase pl-1">
                         {f.fecha.toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" })}
                       </p>
                     </div>
@@ -403,15 +437,39 @@ export function DetailsPanel({ area }: Props) {
             )}
           </div>
           ) : (
-            <div className="flex flex-1 flex-col gap-3 min-h-[200px]">
-              <EvaluationHistory areaId={area.id} />
+            <div className="flex flex-col gap-3">
+              <EvaluationHistory areaId={area.id} areaNombre={area.nombre} />
             </div>
           )}
+          </div>
 
-          {/* Pie del Panel */}
-          <div className="mt-auto shrink-0 rounded-lg border border-border/50 bg-surface-zone px-3 py-2 text-center text-[10px] uppercase tracking-widest text-muted-foreground/60 relative z-10">
+          {/* Pie del Panel (Fijo al fondo) */}
+          <div className="mt-4 shrink-0 rounded-lg border border-border/50 bg-surface-zone px-3 py-2 text-center text-[10px] uppercase tracking-widest text-muted-foreground/60">
             Sistema de Seguridad Industrial
           </div>
+        </div>
+
+          {/* Lightbox para previsualizar imágenes a pantalla completa */}
+          {activeImageUrl && (
+            <div
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 transition-all animate-in fade-in duration-200"
+              onClick={() => setActiveImageUrl(null)}
+            >
+              <button
+                type="button"
+                className="absolute right-4 top-4 rounded-full bg-black/60 p-2 text-white hover:bg-black/85 cursor-pointer"
+                onClick={() => setActiveImageUrl(null)}
+              >
+                <X className="h-6 w-6" />
+              </button>
+              <img
+                src={activeImageUrl}
+                alt="Hallazgo Ampliado"
+                className="max-h-[90vh] max-w-[95vw] rounded-lg object-contain shadow-2xl animate-in zoom-in-95 duration-200"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          )}
 
           {/* Modal de Evaluación (ChecklistForm) visible cuando se requiere */}
           {showChecklist && area && (
