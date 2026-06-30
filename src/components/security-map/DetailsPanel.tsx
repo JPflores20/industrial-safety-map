@@ -452,22 +452,24 @@ export function DetailsPanel({ area }: Props) {
           {/* Lightbox para previsualizar imágenes a pantalla completa */}
           {activeImageUrl && (
             <div
-              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 transition-all animate-in fade-in duration-200"
+              className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-4 bg-black/95 p-4 transition-all animate-in fade-in duration-200"
               onClick={() => setActiveImageUrl(null)}
             >
-              <button
-                type="button"
-                className="absolute right-4 top-4 rounded-full bg-black/60 p-2 text-white hover:bg-black/85 cursor-pointer"
-                onClick={() => setActiveImageUrl(null)}
-              >
-                <X className="h-6 w-6" />
-              </button>
+              {/* Cache bust 8 */}
               <img
                 src={activeImageUrl}
                 alt="Hallazgo Ampliado"
-                className="max-h-[90vh] max-w-[95vw] rounded-lg object-contain shadow-2xl animate-in zoom-in-95 duration-200"
+                className="w-[65vw] h-[65vh] object-contain animate-in zoom-in-95 duration-300 drop-shadow-[0_0_30px_rgba(0,0,0,0.8)]"
                 onClick={(e) => e.stopPropagation()}
               />
+              <button
+                type="button"
+                className="z-[110] flex items-center gap-2 rounded-full bg-white/10 px-6 py-2.5 text-sm font-semibold text-white/90 backdrop-blur-md hover:bg-red-500 hover:text-white transition-all cursor-pointer border border-white/10 shadow-2xl"
+                onClick={() => setActiveImageUrl(null)}
+                title="Cerrar foto"
+              >
+                <X className="h-5 w-5" /> Cerrar Imagen
+              </button>
             </div>
           )}
 
