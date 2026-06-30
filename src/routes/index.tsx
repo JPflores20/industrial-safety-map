@@ -59,7 +59,7 @@ export const Route = createFileRoute("/")({
   }),
   head: () => ({
     meta: [
-      { title: "PRO ONE VIEW" },
+      { title: "PRP ONE VIEW" },
       {
         name: "description",
         content:
@@ -67,7 +67,7 @@ export const Route = createFileRoute("/")({
       },
       {
         property: "og:title",
-        content: "PRO ONE VIEW",
+        content: "PRP ONE VIEW",
       },
       {
         property: "og:description",
@@ -307,7 +307,7 @@ function Index() {
             </div>
             <div>
               <h1 className="hidden sm:block text-lg font-black tracking-tight text-foreground">
-                PRO ONE VIEW
+                PRP ONE VIEW
               </h1>
               <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Activity className="h-3 w-3 text-green-400" />
